@@ -36,6 +36,7 @@ Tastenübersicht im Spiel.
 | Zoom (4 Stufen) | Mausrad, Bild↑/Bild↓ |
 | Minikarte | Klicken/Ziehen springt zur Position, `M` blendet ein/aus |
 | Pause / Tempo 1x–8x | Leertaste / `+` `−` |
+| Angriff | Klick auf ein feindliches Militärgebäude, Anzahl der Soldaten wählen, „Angreifen“ |
 | Statistik (Waren, Verlauf, Siedler, Werkzeug-Prioritäten) | `T` |
 | Hilfe / Debug | `F1` / `F3` |
 | Neue Zufallskarte | `N` |

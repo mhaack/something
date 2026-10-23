@@ -1,6 +1,21 @@
 # STATUS
 
-## Aktuelle Phase: 5 abgeschlossen
+## Aktuelle Phase: 6 abgeschlossen
+
+### Erledigt (Phase 6)
+- Territorium mit deterministischer Konfliktregel (A33), Grenzen auf Karte und Minikarte.
+- Militärgebäude Wachhütte (2 Soldaten), Wachturm (5), Festung (9); erweitern das Gebiet, sobald
+  der erste Soldat eingezogen ist. Infofenster zeigt die Besatzung mit Rängen.
+- Soldaten aus Träger + Schwert + Schild, Ränge 0–4, Beförderung durch Münzen (A34).
+- Angriff: Klick auf ein feindliches Militärgebäude öffnet das Angriffsfenster (Anzahl −/+),
+  Zweikämpfe an der Flagge mit Kampfanimation, Eroberung oder Rückzug (A35).
+- Eroberung verschiebt die Grenze, fremde Gebäude auf verlorenem Gebiet brennen ab (Ruine mit
+  Flammen), ein erobertes HQ wird zerstört (A36). Waren bleiben erhalten.
+- Statistik: Soldaten nach Rang.
+- Tests (82): Territorium, Gebietserweiterung, Soldatenentstehung, Beförderung, Eroberung mit
+  Brand und Warenerhalt, Abwehr, HQ-Eroberung, deterministische Kämpfe.
+
+## Davor: Phase 5
 
 ### Erledigt (Phase 5)
 - Eisenschmelze (Eisenerz + Kohle → Eisen), Münzprägerei (Golderz + Kohle → Münzen),
@@ -109,17 +124,16 @@
 - Browser (Chromium headless, 1280×720, 256×256-Karte, 8x-Tempo, ~440 Siedler): 60 FPS,
   ca. 1,8 ms Renderzeit pro Frame.
 
-### Offen / nächste Schritte (Phase 6)
-- Territorium, Militärgebäude (Wachhütte, Wachturm, Festung), Soldaten mit Rängen,
-  Beförderung durch Münzen, Angriff und Kampf.
+### Offen / nächste Schritte (Phase 7)
+- Gegner-KI in 3 Stufen, Spielmodi, Missionen, Sieg/Niederlage.
 
 ### Bekannte Punkte
-- Abgerissene Gebäude verschwinden sofort (Brand-Animation folgt mit dem Militär in Phase 6).
-- Minikarte zeigt Gebäude noch nicht.
+- Vom Spieler abgerissene Gebäude verschwinden sofort; nur verlorene/zerstörte Gebäude brennen.
+- Noch kein Gegner, der von selbst handelt (Spieler 2 ist bis Phase 7 passiv).
 - Fischbestände wachsen nicht nach.
-- Minikarte zeigt noch keine Straßen und Grenzen (Phase 6 mit Territorium).
+- Minikarte zeigt noch keine Straßen.
 - Kein Hauptmenü, Seed/Größe/Spieler per URL (Annahme A5).
 - Siedler laufen auf Straßen durcheinander hindurch (kein Ausweichen), wie im Original.
 
 ### Annahmen
-Siehe PLAN.md, Abschnitt 5 (A1–A32).
+Siehe PLAN.md, Abschnitt 5 (A1–A37).

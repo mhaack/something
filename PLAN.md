@@ -174,3 +174,21 @@ STATUS.md und Commit.
   gespeichert, höchstens `STATS.MAX_SAMPLES` (gleitendes Fenster von 1 Stunde).
 - A32: Statistik-Diagramm: eine Achse, höchstens 4 Waren gleichzeitig, Kategoriefarben gegen den
   Panel-Hintergrund geprüft; Umschalter zwischen Bestand und Produktion pro Minute.
+- A33: Territorium: HQ (Radius `MILITARY.HQ_RADIUS`) und besetzte Militärgebäude beanspruchen
+  Knoten. Ein Knoten bleibt beim bisherigen Besitzer, solange dieser ihn noch beansprucht, sonst
+  gewinnt der nächste Anspruch (Gleichstand: kleinere Gebäude-ID). Nach einer Eroberung gilt im
+  Radius des eroberten Gebäudes nur der nächste Anspruch. Abgetrennte Gebietsteile fallen weg,
+  vollständig umschlossene neutrale Flächen werden aufgefüllt.
+- A34: Soldaten entstehen im Lager aus Träger + Schwert + Schild. Beförderung nur in besetzten
+  Militärgebäuden: je `PROMOTION_TICKS` verbraucht das Gebäude eine Münze und befördert den
+  rangniedrigsten Soldaten (Rang 0–4).
+- A35: Kampf: Angreifer laufen zur Flagge des Ziels, Verteidiger kommen einzeln heraus. Je Runde
+  (`DUEL_ROUND_TICKS`) trifft der Angreifer mit Wahrscheinlichkeit
+  `ATTACK[a] / (ATTACK[a] + ATTACK[d])` (Welt-RNG), ein Treffer kostet 1 Lebenspunkt
+  (`HP[rang]`). Ist das Gebäude leer, zieht der Angreifer ein und übernimmt es samt Vorrat.
+  Pro Quellgebäude bleibt mindestens `KEEP_SOLDIERS` Soldat zurück.
+- A36: Ein erobertes HQ wird zerstört (der Spieler verliert sein Hauptlager, `hq = 0`).
+  Gebäude, Flaggen und Straßen auf verlorenem Gebiet brennen ab; Waren darin gehen ins nächste
+  eigene Lager bzw. bleiben im Warenbuch. Brände sind reine Anzeige (`FIRE_TICKS`).
+- A37: Ein Angriff bleibt gültig, solange das Ziel existiert, feindlich und fertig gebaut ist,
+  auch wenn gerade alle Verteidiger draußen kämpfen.
