@@ -1,4 +1,14 @@
-import { MAP, START, VIEW } from './data/balance';
+import {
+  AI_LEVELS,
+  MAP,
+  START,
+  STOCK_LEVELS,
+  VIEW,
+  type AiLevel,
+  type StockLevel,
+} from './data/balance';
+import { MISSIONS } from './data/missions';
+import { aiCommands } from './ai';
 import {
   centerOnNode,
   clampCamera,
@@ -20,24 +30,56 @@ import { StatsWindow } from './ui/statsWindow';
 import { GameClock } from './ui/clock';
 import { DebugOverlay } from './ui/debugOverlay';
 import { t } from './ui/i18n';
+import {
+  GameMenu,
+  markMissionDone,
+  missionById,
+  missionOptions,
+  randomSeed,
+  toWorldOptions,
+  type GameOptions,
+} from './ui/gameMenu';
+import { GoalsPanel, OutcomeDialog, playerName } from './ui/goalsPanel';
 import { Input } from './ui/input';
 
 function $(id: string): HTMLElement {
   return document.getElementById(id)!;
 }
 
-function readOptions(): { seed: string; size: number; players: number } {
+/** Spieloptionen aus der URL (Annahme A5): seed, size, players, ai, stock oder mission. */
+function readOptions(): GameOptions {
   const p = new URLSearchParams(location.search);
+  const mission = missionById(Number(p.get('mission')));
+  if (mission) return missionOptions(mission);
   const size = Number(p.get('size'));
   const players = Number(p.get('players'));
+  const level = p.get('ai') as AiLevel;
+  const stock = p.get('stock') as StockLevel;
+  const total =
+    players >= START.MIN_PLAYERS && players <= START.MAX_PLAYERS ? players : START.MIN_PLAYERS + 1;
   return {
-    seed: p.get('seed') ?? String(Math.floor(Math.random() * 1e6)),
+    seed: p.get('seed') ?? randomSeed(),
     size: (MAP.SIZES as readonly number[]).includes(size) ? size : MAP.DEFAULT_SIZE,
-    players:
-      players >= START.MIN_PLAYERS && players <= START.MAX_PLAYERS
-        ? players
-        : START.MIN_PLAYERS + 1,
+    opponents: Array.from({ length: total - 1 }, () =>
+      AI_LEVELS.includes(level) ? level : 'normal',
+    ),
+    stock: STOCK_LEVELS.includes(stock) ? stock : 'normal',
+    mission: 0,
   };
+}
+
+function writeOptions(o: GameOptions): void {
+  const url = new URL(location.href);
+  for (const k of ['seed', 'size', 'players', 'ai', 'stock', 'mission']) url.searchParams.delete(k);
+  if (o.mission) url.searchParams.set('mission', String(o.mission));
+  else {
+    url.searchParams.set('seed', o.seed);
+    url.searchParams.set('size', String(o.size));
+    url.searchParams.set('players', String(o.opponents.length + 1));
+    if (o.opponents.length) url.searchParams.set('ai', o.opponents[0]);
+    url.searchParams.set('stock', o.stock);
+  }
+  history.replaceState(null, '', url);
 }
 
 class Game {
@@ -58,6 +100,12 @@ class Game {
   stats: StatsWindow;
   toast = new Toast($('toast'));
   tools: Tools;
+  options: GameOptions;
+  menu: GameMenu;
+  goals = new GoalsPanel(document.body);
+  outcome = new OutcomeDialog(document.body);
+  private outcomeShown = false;
+  private defeatedSeen = new Set<number>();
   private mouseX = -1;
   private mouseY = -1;
   private lastFrame = performance.now();
@@ -69,7 +117,9 @@ class Game {
   private minimapBuilt = 0;
 
   constructor(private canvas: HTMLCanvasElement) {
-    this.world = createWorld(readOptions());
+    this.options = readOptions();
+    this.world = createWorld(toWorldOptions(this.options));
+    this.menu = new GameMenu(document.body, this.options, (o) => this.startGame(o));
     this.hud = new Hud(document.body, {
       setMode: (m) => this.tools.setMode(m),
       toggleBuildHelp: () => this.onKey('KeyH'),
@@ -81,6 +131,7 @@ class Game {
       togglePause: () => this.onKey('Space'),
       slower: () => this.onKey('Minus'),
       faster: () => this.onKey('Equal'),
+      newGame: () => this.onKey('KeyN'),
     });
     this.tools = new Tools({
       world: () => this.world,
@@ -135,20 +186,46 @@ class Game {
     requestAnimationFrame((ts) => this.frame(ts));
   }
 
-  private newMap(): void {
-    const opts = readOptions();
-    opts.seed = String(Math.floor(Math.random() * 1e6));
-    const url = new URL(location.href);
-    url.searchParams.set('seed', opts.seed);
-    history.replaceState(null, '', url);
-    this.world = createWorld(opts);
+  startGame(o: GameOptions): void {
+    this.options = o;
+    writeOptions(o);
+    this.world = createWorld(toWorldOptions(o));
     this.pending = [];
     this.replay = [];
+    this.outcomeShown = false;
+    this.defeatedSeen.clear();
+    this.outcome.hide();
+    this.clock.paused = false;
     this.tools.reset();
     this.renderer.setWorld(this.world);
     this.minimap.setWorld(this.world);
     this.resize();
     centerOnNode(this.cam, this.world.map, this.world.players[0].hqNode);
+    this.updateHud();
+  }
+
+  /** Spielende und besiegte Gegner melden. */
+  private checkOutcome(): void {
+    for (const p of this.world.players) {
+      if (p.id === 0 || !p.defeated || this.defeatedSeen.has(p.id)) continue;
+      this.defeatedSeen.add(p.id);
+      this.toast.show(t('toast.defeatedOpponent', { color: playerName(this.world, p.id) }));
+    }
+    const o = this.world.outcome;
+    if (!o || this.outcomeShown) return;
+    this.outcomeShown = true;
+    this.clock.paused = true;
+    const mission = this.world.setup.mission;
+    if (o.result === 'won' && mission) markMissionDone(mission);
+    const next = MISSIONS.find((m) => m.id === mission + 1);
+    this.outcome.show(this.world, {
+      continuePlaying: () => {
+        this.clock.paused = false;
+        this.updateHud();
+      },
+      newGame: () => this.menu.toggle(true),
+      nextMission: mission && next ? () => this.startGame(missionOptions(next)) : null,
+    });
     this.updateHud();
   }
 
@@ -193,7 +270,23 @@ class Game {
     return cmds;
   }
 
+  /** Spielerbefehle und KI-Befehle für den nächsten Tick (beide landen im Replay). */
+  private tickCommands(): Command[] {
+    const cmds = this.applyPending();
+    for (const c of aiCommands(this.world)) {
+      this.replay.push({ tick: this.world.tick, command: c });
+      cmds.push(c);
+    }
+    return cmds;
+  }
+
   private onKey(code: string): void {
+    if (this.menu.visible) {
+      if (code === 'Escape' || code === 'KeyN') this.menu.toggle(false);
+      this.updateHud();
+      return;
+    }
+    if (this.outcome.visible) return;
     if (this.stats.visible && (code === 'Escape' || code === 'KeyT')) {
       this.stats.toggle(false);
       this.updateHud();
@@ -236,7 +329,7 @@ class Game {
         $('minimap-panel').hidden = !this.minimapVisible;
         break;
       case 'KeyN':
-        this.newMap();
+        this.menu.toggle(true);
         break;
       case 'PageUp':
         this.zoomAt(1, window.innerWidth / 2, window.innerHeight / 2);
@@ -277,6 +370,7 @@ class Game {
       minimap: this.minimapVisible,
       debug: this.debug.visible,
       stats: this.stats?.visible ?? false,
+      menu: this.menu?.visible ?? false,
       paused: this.clock.paused,
       speed: this.clock.speed,
     });
@@ -307,7 +401,7 @@ class Game {
     // Simulation
     const ticks = this.clock.advance(dt);
     const t0 = performance.now();
-    for (let i = 0; i < ticks; i++) step(this.world, this.applyPending());
+    for (let i = 0; i < ticks; i++) step(this.world, this.tickCommands());
     // In der Pause werden Befehle sofort angewendet (entspricht dem Beginn des nächsten Ticks).
     if (ticks === 0 && this.pending.length > 0) {
       for (const c of this.applyPending()) applyCommand(this.world, c);
@@ -346,6 +440,9 @@ class Game {
     }
     this.info.refresh();
     this.stats.refresh();
+    this.goals.root.hidden = this.debug.visible;
+    if (!this.debug.visible) this.goals.update(this.world);
+    this.checkOutcome();
     if (this.minimapVisible) this.minimap.draw(this.cam);
     this.frameMs = this.frameMs * 0.9 + (performance.now() - r0) * 0.1;
     this.debug.update(this.world, this.cam, {

@@ -15,6 +15,7 @@ export interface HudActions {
   togglePause(): void;
   slower(): void;
   faster(): void;
+  newGame(): void;
 }
 
 export interface HudState {
@@ -24,6 +25,7 @@ export interface HudState {
   minimap: boolean;
   debug: boolean;
   stats: boolean;
+  menu: boolean;
   paused: boolean;
   speed: number;
 }
@@ -95,6 +97,7 @@ export class Hud {
       ['minimap', 'tool.minimap', 'M', () => actions.toggleMinimap(), (s) => s.minimap],
     ]);
     group([
+      ['newGame', 'tool.newGame', 'N', () => actions.newGame(), (s) => s.menu],
       ['stats', 'tool.stats', 'T', () => actions.toggleStats(), (s) => s.stats],
       ['help', 'tool.help', 'F1', () => actions.toggleHelp(), () => !this.help.hidden],
       ['debug', 'tool.debug', 'F3', () => actions.toggleDebug(), (s) => s.debug],

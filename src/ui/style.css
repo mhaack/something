@@ -775,3 +775,145 @@ canvas.chart {
   min-width: 36px;
   font-weight: bold;
 }
+
+/* Ziele */
+.goals {
+  top: 60px;
+  left: 8px;
+  width: 232px;
+  padding: 6px 10px 8px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.goal {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: space-between;
+  line-height: 1.5;
+}
+
+.goal.opponent {
+  justify-content: flex-start;
+}
+
+.goal.opponent .goal-value {
+  margin-left: auto;
+}
+
+.goal.done {
+  color: var(--text-dim);
+}
+
+.goal.dim {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.goal-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: bold;
+}
+
+/* Neues Spiel */
+.menu-box {
+  width: min(560px, calc(100% - 32px));
+}
+
+.menu-row {
+  margin-bottom: 8px;
+}
+
+.menu-row .panel-sub {
+  margin-bottom: 4px;
+}
+
+.menu-seed {
+  font: inherit;
+  color: var(--text);
+  background: var(--inset);
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  padding: 4px 8px;
+  width: 140px;
+}
+
+.menu-note {
+  margin: 6px 0;
+  color: var(--text-dim);
+  line-height: 1.45;
+}
+
+.menu-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.menu-start {
+  font: inherit;
+  font-weight: bold;
+  color: #2a1a06;
+  background: linear-gradient(180deg, #f8e078, #d8a830);
+  border: 1px solid var(--frame-dark);
+  padding: 6px 16px;
+  cursor: pointer;
+}
+
+.menu-start:hover {
+  filter: brightness(1.1);
+}
+
+.mission {
+  padding: 8px 0 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.45);
+}
+
+.mission:last-child {
+  border-bottom: none;
+}
+
+.mission-title {
+  display: flex;
+  justify-content: space-between;
+  font-weight: bold;
+  font-size: 14px;
+  color: var(--accent);
+}
+
+.mission-done {
+  color: #9be07a;
+  font-size: 12px;
+}
+
+.mission-goals {
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.5;
+}
+
+/* Spielende */
+.outcome-box {
+  text-align: center;
+}
+
+.outcome-title {
+  font-size: 28px;
+  font-weight: bold;
+  text-shadow: 2px 2px 0 #000;
+  margin-bottom: 6px;
+}
+
+.outcome-title.won {
+  color: var(--accent);
+}
+
+.outcome-title.lost {
+  color: #e06040;
+}
+
+.outcome-box .menu-actions {
+  justify-content: center;
+}

@@ -23,7 +23,8 @@ export type IconName =
   | 'play'
   | 'slower'
   | 'faster'
-  | 'close';
+  | 'close'
+  | 'newGame';
 
 const INK: RGB = [24, 16, 8];
 const LIGHT: RGB = [242, 230, 200];
@@ -70,6 +71,17 @@ function draw(name: IconName, b: PixelBuffer): void {
         b.set(15 - k, k, RED);
         b.set(14 - k, k, RED);
       }
+      break;
+    case 'newGame':
+      // Landkarte als Schriftrolle mit Wegmarke
+      b.rect(2, 3, 12, 10, [214, 190, 140]);
+      b.rect(2, 3, 12, 1, [240, 222, 180]);
+      b.rect(1, 2, 2, 12, WOOD);
+      b.rect(13, 2, 2, 12, WOOD);
+      b.rect(4, 8, 5, 3, GREEN);
+      b.rect(8, 5, 4, 2, BLUE);
+      b.rect(10, 9, 1, 3, INK);
+      b.rect(11, 9, 2, 2, RED);
       break;
     case 'stats':
       b.rect(2, 14, 12, 1, LIGHT);

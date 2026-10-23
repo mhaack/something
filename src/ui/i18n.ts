@@ -193,7 +193,7 @@ const de = {
   'help.k.overlays': 'H: Bauhilfe (Bauplatzgrößen) · V: Stau-Anzeige · F3: Debug',
   'help.k.time': 'Leertaste: Pause · + / −: Tempo 1x–8x',
   'help.k.misc':
-    'J: Geologen zur Flagge · G: Testware zur Flagge · N: neue Karte · F1: diese Hilfe',
+    'J: Geologen zur Flagge · G: Testware zur Flagge · N: neues Spiel · F1: diese Hilfe',
   'hud.congestion': 'Stau-Anzeige',
   'action.placeFlag': 'Flagge setzen',
   'action.buildRoad': 'Straße bauen',
@@ -305,13 +305,78 @@ const de = {
   'object.1': 'Baum',
   'object.2': 'Felsen',
   'debug.object': 'Objekt',
+  'tool.newGame': 'Neues Spiel',
+  'menu.title': 'Neues Spiel',
+  'menu.tab.free': 'Freies Spiel',
+  'menu.tab.missions': 'Missionen',
+  'menu.size': 'Kartengröße',
+  'menu.sizeValue': '{n}×{n}',
+  'menu.opponents': 'Gegner',
+  'menu.level': 'Stärke der Gegner',
+  'menu.stock': 'Startbedingungen',
+  'menu.seed': 'Karte (Seed)',
+  'menu.random': 'Zufällig',
+  'menu.start': 'Spiel starten',
+  'menu.startMission': 'Mission starten',
+  'menu.cancel': 'Abbrechen',
+  'menu.freeGoal': 'Ziel: alle Gegner besiegen. Ohne Gegner endlos.',
+  'menu.done': 'geschafft',
+  'menu.missionOpponents': 'Gegner: {list}',
+  'menu.noOpponents': 'keine Gegner',
+  'menu.timeLimit': 'Zeitlimit: {min} Minuten',
+  'level.easy': 'leicht',
+  'level.normal': 'mittel',
+  'level.hard': 'schwer',
+  'stock.low': 'wenig',
+  'stock.normal': 'normal',
+  'stock.high': 'viel',
+  'color.0': 'Blau',
+  'color.1': 'Rot',
+  'color.2': 'Gelb',
+  'color.3': 'Violett',
+  'goal.conquer': 'Alle Gegner besiegen',
+  'goal.produce': '{ware} herstellen',
+  'goal.territory': 'Gebiet vergrößern',
+  'goals.free': 'Freies Spiel',
+  'goals.mission': 'Mission {n}: {title}',
+  'goals.endless': 'Endlosspiel ohne Ziel',
+  'goals.timeLeft': 'Verbleibende Zeit: {time}',
+  'goals.opponent': '{color} ({level})',
+  'goals.defeated': 'besiegt',
+  'outcome.won': 'Sieg!',
+  'outcome.lost': 'Niederlage',
+  'outcome.goals': 'Alle Ziele erreicht nach {time}.',
+  'outcome.defeated': 'Dein Reich ist gefallen: kein Lager und kein Militärgebäude mehr.',
+  'outcome.time': 'Die Zeit ist abgelaufen.',
+  'outcome.continue': 'Weiterspielen',
+  'outcome.newGame': 'Neues Spiel',
+  'outcome.nextMission': 'Nächste Mission',
+  'toast.defeatedOpponent': '{color} ist besiegt!',
+  'mission.1.title': 'Erste Schritte',
+  'mission.1.text':
+    'Ein ruhiges Tal ohne Nachbarn. Baue Holzfäller, Sägewerk und Steinbruch und vergrößere dein Land mit Wachhütten.',
+  'mission.2.title': 'Brot und Fleisch',
+  'mission.2.text':
+    'Deine Siedler haben Hunger. Lege Felder an, mahle Mehl, backe Brot und züchte Schweine, bevor die Zeit abläuft.',
+  'mission.3.title': 'Eisen und Gold',
+  'mission.3.text':
+    'Mit knappen Vorräten beginnst du. Schicke Geologen in die Berge, baue Bergwerke und schmelze Eisen und Münzen.',
+  'mission.4.title': 'Der Nachbar',
+  'mission.4.text':
+    'Jenseits des Waldes siedelt ein unerfahrener Nachbar. Rüste Soldaten aus und erobere sein Land.',
+  'mission.5.title': 'Zwei Fronten',
+  'mission.5.text':
+    'Zwei Gegner teilen sich das Land mit dir. Nur einer kann am Ende übrig bleiben.',
+  'mission.6.title': 'Die Übermacht',
+  'mission.6.text':
+    'Drei Gegner, zwei davon erfahrene Feldherren, und kaum Vorräte. Die letzte Prüfung.',
 } as const;
 
 export type TextKey = keyof typeof de;
 
 export function t(key: TextKey, params?: Record<string, string | number>): string {
   let s: string = de[key];
-  if (params) for (const [k, v] of Object.entries(params)) s = s.replace(`{${k}}`, String(v));
+  if (params) for (const [k, v] of Object.entries(params)) s = s.split(`{${k}}`).join(String(v));
   return s;
 }
 
