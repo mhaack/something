@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kleine Siedler</title>
+    <link rel="stylesheet" href="/src/ui/style.css" />
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+    <div id="hud" class="panel">
+      <span id="hud-status"></span>
+      <span id="hud-seed"></span>
+    </div>
+    <div id="minimap-panel" class="panel">
+      <div class="panel-title" id="minimap-title"></div>
+      <canvas id="minimap"></canvas>
+    </div>
+    <pre id="debug" class="panel"></pre>
+    <div id="help" class="panel"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
