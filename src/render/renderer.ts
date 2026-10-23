@@ -1,4 +1,4 @@
-import { MAP, TRANSPORT, TREES, VIEW } from '../data/balance';
+import { MAP, MILITARY, TRANSPORT, TREES, VIEW } from '../data/balance';
 import { MapObject, Terrain } from '../data/terrain';
 import type { Settler } from '../sim/entities';
 import { canPlaceFlag } from '../sim/flags';
@@ -8,7 +8,7 @@ import { buildSize } from '../sim/buildings';
 import { buildProgress } from '../sim/workers';
 import { treeStage, treeVariant } from '../sim/trees';
 import type { BuildingType } from '../data/buildings';
-import type { Building, Sign } from '../sim/entities';
+import type { Building, Fire, Sign } from '../sim/entities';
 import { hash2 } from '../sim/rng';
 import { plannedRoute, waitingFor } from '../sim/routing';
 import type { World } from '../sim/world';
@@ -313,6 +313,8 @@ export class Renderer {
       b.push(s);
     }
 
+    const fires = new Map<number, Fire>();
+    for (const f of world.fires) if (f.until > world.tick) fires.set(f.node, f);
     const signs = new Map<number, Sign>();
     for (const g of world.signs) if (g.until > world.tick) signs.set(g.node, g);
     const flagFrame = Math.floor(opts.animMs / 180) % FLAG_FRAMES;
@@ -332,6 +334,17 @@ export class Renderer {
         const obj = map.objects[i];
         if (obj === MapObject.None && !world.nodeRoad[i] && !world.nodeFlag[i]) {
           if (!world.nodeBuilding[i]) this.drawDecoration(i, x, y, sx, sy);
+        }
+        const fire = fires.get(i);
+        if (fire) {
+          this.blit(this.sprites.ruin, sx, sy);
+          const left = (fire.until - world.tick) / MILITARY.FIRE_TICKS;
+          if (left > 0.25) {
+            const ff = Math.floor(opts.animMs / 120 + i) % this.sprites.flames.length;
+            this.ctx.globalAlpha = Math.min(1, left * 1.5);
+            this.blit(this.sprites.flames[ff], sx, sy - 2);
+            this.ctx.globalAlpha = 1;
+          }
         }
         const sign = signs.get(i);
         if (sign)
@@ -430,6 +443,21 @@ export class Renderer {
       : 0;
     const dir = facingLeft ? 1 : 0;
     const ware = s.ware ? this.world.wares[s.ware] : undefined;
+    if (s.job === 'soldier') {
+      const color = this.world.players[s.owner].color;
+      const rank = Math.min(4, s.rank);
+      if (s.state === 'duel' || s.state === 'atkWait') {
+        // Zweikampf an der Flagge: Angreifer links, Verteidiger rechts, einander zugewandt.
+        const attacker = s.targetBuilding !== 0;
+        const ox = attacker ? -7 : 7;
+        const fdir = attacker ? 0 : 1;
+        const wf = s.state === 'duel' ? Math.floor(this.anim / 180 + s.id) % WORK_FRAMES : 0;
+        this.blit(this.sprites.soldiersFight[color][rank][fdir][wf], x + ox, y);
+      } else {
+        this.blit(this.sprites.soldiers[color][rank][dir][frame], x, y);
+      }
+      return 1;
+    }
     if (s.job === 'donkey') {
       this.blit(this.sprites.donkeys[dir][frame], x, y);
       if (ware) this.blit(this.sprites.wares[ware.type], x - (facingLeft ? -1 : 1), y - 7);

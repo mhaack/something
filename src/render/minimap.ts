@@ -1,5 +1,5 @@
 import { MapObject, Terrain } from '../data/terrain';
-import { TRI_UP } from '../sim/geometry';
+import { DIRS, TRI_UP, neighbor } from '../sim/geometry';
 import type { World } from '../sim/world';
 import { worldPixelHeight, worldPixelWidth, type Camera } from './camera';
 import { PLAYER_COLORS, TERRAIN_RAMPS, type RGB } from './palette';
@@ -64,12 +64,30 @@ export class Minimap {
         let c = ramp[Math.max(0, Math.min(ramp.length - 1, Math.round(l * (ramp.length - 1))))];
         if (map.objects[i] === MapObject.Tree) c = [24, 58, 18];
         else if (map.objects[i] === MapObject.Rock) c = [150, 146, 140];
+        // Gebiet: Spielerfarbe einblenden, Grenzen hervorheben, Gebäude als helle Punkte.
+        const owner = this.world.owner[i];
+        if (owner >= 0) {
+          const pc = PLAYER_COLORS[this.world.players[owner].color];
+          let border = false;
+          for (const d of DIRS) {
+            const m = neighbor(map, i, d);
+            if (m >= 0 && this.world.owner[m] !== owner) border = true;
+          }
+          const k = border ? 0.85 : 0.3;
+          c = [
+            Math.round(c[0] * (1 - k) + pc[0] * k),
+            Math.round(c[1] * (1 - k) + pc[1] * k),
+            Math.round(c[2] * (1 - k) + pc[2] * k),
+          ];
+        }
+        if (this.world.nodeBuilding[i]) c = [240, 232, 210];
         const px = x * 2 + (y & 1);
         put(px, y, c);
         put(px + 1, y, c);
       }
     }
     for (const p of this.world.players) {
+      if (!p.hq) continue;
       const x = p.hqNode % map.width;
       const y = (p.hqNode / map.width) | 0;
       for (let dy = -1; dy <= 1; dy++) {

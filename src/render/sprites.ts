@@ -14,12 +14,15 @@ import {
   makeFigure,
   makeFlag,
   makeHQ,
+  makeSoldier,
   makeWare,
   mirror,
 } from './spritesUnits';
 import {
   makeBuilding,
   makeField,
+  makeFlames,
+  makeRuin,
   makeSapling,
   makeSign,
   makeScaffold,
@@ -423,6 +426,11 @@ export interface SpriteSet {
   figures: Record<Job, FigureSprites>;
   /** [Blick][Frame] */
   donkeys: Sprite[][];
+  /** [Spieler][Rang][Blick][Frame]: Laufen bzw. Kämpfen */
+  soldiers: Sprite[][][][];
+  soldiersFight: Sprite[][][][];
+  ruin: Sprite;
+  flames: Sprite[];
   wares: Record<WareType, Sprite>;
 }
 
@@ -430,6 +438,7 @@ export const ROCK_SIZES = 3;
 export const WALK_FRAMES = 4;
 export const FLAG_FRAMES = 4;
 export const WORK_FRAMES = 2;
+const RANKS = [0, 1, 2, 3, 4];
 /** Windphasen der Bäume (Pendel: -1, 0, 1, 0). */
 export const TREE_FRAMES = 4;
 const SWAY = [-1, 0, 1, 0];
@@ -486,6 +495,14 @@ export function buildSprites(playerColors: RGB[]): SpriteSet {
     signs: [0, 1, 2, 3, 4].map((r) => [makeSign(r, false), makeSign(r, true)]),
     figures,
     donkeys: [donkeyR, donkeyR.map(mirror)],
+    soldiers: playerColors.map((c) =>
+      RANKS.map((r) => both(frames((i) => makeSoldier(c, r, i, false), WALK_FRAMES))),
+    ),
+    soldiersFight: playerColors.map((c) =>
+      RANKS.map((r) => both(frames((i) => makeSoldier(c, r, i, true), WORK_FRAMES))),
+    ),
+    ruin: makeRuin(),
+    flames: frames(makeFlames, 3),
     wares,
   };
 }

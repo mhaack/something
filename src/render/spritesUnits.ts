@@ -421,6 +421,90 @@ export function makeFigure(color: RGB, frame: number, pose: FigurePose, look: Fi
   return b.toSprite(cx, 20);
 }
 
+const RANK_PLUME: (RGB | null)[] = [
+  null,
+  [176, 110, 50],
+  [200, 204, 214],
+  [236, 196, 60],
+  [210, 40, 40],
+];
+const STEEL: RGB = [176, 180, 192];
+const STEEL_DARK: RGB = [110, 114, 126];
+
+/**
+ * Soldat (nach rechts blickend) mit Helm, Schild in Spielerfarbe und Schwert. Der Helmbusch
+ * zeigt den Rang (0 ohne Busch, dann Bronze, Silber, Gold, Rot). `fight`: Schwert oben/vorn.
+ */
+export function makeSoldier(color: RGB, rank: number, frame: number, fight: boolean): Sprite {
+  const b = new PixelBuffer(18, 24);
+  const bob = !fight && frame % 2 === 1 ? 1 : 0;
+  const top = 5 + bob;
+  const cx = 7;
+  // Helm mit Busch
+  b.rect(cx - 2, top, 4, 2, STEEL);
+  b.rect(cx - 2, top + 2, 1, 2, STEEL_DARK);
+  b.set(cx + 1, top, STEEL_DARK);
+  const plume = RANK_PLUME[rank];
+  if (plume) {
+    b.rect(cx - 1, top - 2, 2, 2, plume);
+    if (rank >= 3) b.set(cx - 2, top - 3, plume);
+  }
+  // Gesicht
+  b.rect(cx - 1, top + 2, 3, 2, SKIN);
+  b.set(cx + 1, top + 2, [40, 30, 30]);
+  // Kettenhemd unter Wappenrock
+  for (let y = 0; y < 6; y++) {
+    for (let x = -2; x <= 1; x++)
+      b.set(
+        cx + x,
+        top + 4 + y,
+        y < 1 ? STEEL : shade(color, x === -2 ? 1.15 : x === 1 ? 0.7 : 0.9),
+      );
+  }
+  b.rect(cx - 2, top + 8, 4, 1, BELT);
+  // Schwert
+  if (fight && frame === 0) {
+    b.set(cx + 2, top + 4, SKIN);
+    for (let k = 1; k <= 5; k++)
+      b.set(cx + 2 + Math.round(k * 0.4), top + 4 - k, k === 1 ? [140, 100, 40] : STEEL);
+  } else if (fight) {
+    b.set(cx + 2, top + 6, SKIN);
+    for (let k = 1; k <= 6; k++) b.set(cx + 2 + k, top + 6, k === 1 ? [140, 100, 40] : STEEL);
+  } else {
+    b.set(cx + 2, top + 7, SKIN);
+    for (let k = 1; k <= 4; k++)
+      b.set(cx + 2 + (k >> 2), top + 7 + k, k === 1 ? [140, 100, 40] : STEEL);
+  }
+  // Schild vorn
+  b.rect(cx - 4, top + 4, 3, 5, color);
+  b.rect(cx - 4, top + 4, 3, 1, shade(color, 1.35));
+  b.set(cx - 3, top + 9, color);
+  b.set(cx - 3, top + 6, [236, 210, 120]);
+  // Beine
+  const stride = fight
+    ? frame === 0
+      ? [0, 0]
+      : [-1, 1]
+    : [
+        [-1, 1],
+        [0, 0],
+        [1, -1],
+        [0, 0],
+      ][frame];
+  const legTop = top + 10;
+  const legLen = 5 - bob;
+  for (let y = 0; y < legLen; y++) {
+    const t = y / legLen;
+    b.set(cx - 1 + Math.round(stride[0] * t), legTop + y, STEEL_DARK);
+    b.set(cx + Math.round(stride[1] * t), legTop + y, [80, 82, 94]);
+  }
+  b.set(cx - 1 + stride[0], legTop + legLen, BOOTS);
+  b.set(cx + stride[1], legTop + legLen, BOOTS);
+  b.outline(OUTLINE);
+  b.shadow(cx + 1, 21, 4, 1.3, 80);
+  return b.toSprite(cx, 21);
+}
+
 /** Träger (Kompatibilität): Figur mit Strohhut, mit oder ohne Last. */
 export function makeCarrier(color: RGB, frame: number, loaded: boolean): Sprite {
   return makeFigure(color, frame, loaded ? 'carry' : 'walk', FIGURE_LOOKS.carrier);

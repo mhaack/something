@@ -478,6 +478,70 @@ export function makeBuilding(type: BuildingType, color: RGB): Sprite {
       banner(b, 38, base - 28, color);
       return finish(b, 27, base, 24);
     }
+    case 'guardhut': {
+      const b = new PixelBuffer(36, 58);
+      const base = 52;
+      // Holzturm auf vier Pfählen mit Querbalken, Plattform und Dach
+      for (const x of [9, 25]) b.rect(x, base - 20, 2, 20, PLANK[1]);
+      b.rect(9, base - 11, 18, 1, PLANK[0]);
+      timberWall(b, 7, base - 32, 22, 12);
+      for (let x = 7; x < 29; x += 3) b.rect(x, base - 35, 2, 3, PLANK[2]);
+      roof(b, 18, base - 35, 13, 8, 'shingle');
+      b.rect(12, base - 28, 3, 3, GLASS);
+      b.rect(21, base - 28, 3, 3, GLASS);
+      // Leiter
+      for (let y = base - 20; y < base; y += 3) b.rect(15, y, 6, 1, PLANK[2]);
+      b.rect(15, base - 20, 1, 20, PLANK[0]);
+      b.rect(20, base - 20, 1, 20, PLANK[0]);
+      banner(b, 18, base - 51, color);
+      return finish(b, 18, base, 14);
+    }
+    case 'watchtower': {
+      const b = new PixelBuffer(44, 62);
+      const base = 56;
+      stoneBase(b, 10, base - 40, 24, 40, 33);
+      // Zinnen
+      for (let x = 8; x < 36; x += 4) b.rect(x, base - 44, 3, 4, STONE[2]);
+      b.rect(8, base - 41, 28, 2, STONE[1]);
+      door(b, 18, base - 11, 8, 11);
+      for (const y of [base - 22, base - 33]) b.rect(20, y, 4, 5, GLASS);
+      b.rect(30, base - 26, 2, 4, GLASS);
+      b.rect(12, base - 26, 2, 4, GLASS);
+      b.rect(22, base - 58, 1, 14, PLANK[1]);
+      for (let x = 0; x < 9; x++) {
+        const wave = Math.round(Math.sin((x / 9) * Math.PI * 2) * 0.8);
+        for (let y = 0; y < 5; y++) b.set(23 + x, base - 57 + y + wave, color);
+      }
+      return finish(b, 22, base, 18);
+    }
+    case 'fortress': {
+      const b = new PixelBuffer(92, 80);
+      const base = 74;
+      // Mauer, zwei Ecktürme, Torhaus mit Bergfried
+      stoneBase(b, 10, base - 24, 72, 24, 51);
+      for (let x = 10; x < 82; x += 5) b.rect(x, base - 28, 3, 4, STONE[2]);
+      for (const tx of [4, 72]) {
+        stoneBase(b, tx, base - 40, 16, 40, tx);
+        for (let x = tx; x < tx + 16; x += 4) b.rect(x, base - 44, 3, 4, STONE[2]);
+        b.rect(tx + 6, base - 30, 3, 5, GLASS);
+      }
+      stoneBase(b, 32, base - 50, 28, 50, 77);
+      for (let x = 32; x < 60; x += 4) b.rect(x, base - 54, 3, 4, STONE[2]);
+      b.rect(39, base - 18, 14, 18, DOOR);
+      for (let y = base - 16; y < base; y += 3) b.rect(39, y, 14, 1, [50, 46, 50]);
+      for (const y of [base - 40, base - 30]) b.rect(44, y, 4, 5, LIT);
+      // Banner
+      for (const bx of [36, 52]) {
+        b.rect(bx, base - 46, 4, 12, color);
+        b.rect(bx, base - 46, 4, 1, PLANK[3]);
+      }
+      b.rect(46, base - 72, 1, 18, PLANK[1]);
+      for (let x = 0; x < 12; x++) {
+        const wave = Math.round(Math.sin((x / 12) * Math.PI * 2) * 0.9);
+        for (let y = 0; y < 6; y++) b.set(47 + x, base - 71 + y + wave, color);
+      }
+      return finish(b, 46, base, 40);
+    }
     case 'smelter':
     case 'mint':
     case 'toolsmith':
@@ -689,4 +753,49 @@ export function makeStatusIcon(kind: 0 | 1): Sprite {
   b.set(4, 6, [255, 255, 255]);
   b.outline(OUTLINE);
   return b.toSprite(4, 8);
+}
+
+/** Brandruine: verkohlte Balken und Schutt. */
+export function makeRuin(): Sprite {
+  const b = new PixelBuffer(40, 26);
+  const base = 22;
+  b.ellipse(20, base - 3, 16, 4, (_dx, dy, x, y) =>
+    hash2(x, y, 5) > 0.5 ? [44, 38, 34] : dy < 0 ? [70, 62, 56] : [30, 26, 24],
+  );
+  for (const [x, h] of [
+    [10, 10],
+    [17, 14],
+    [26, 8],
+    [31, 12],
+  ]) {
+    b.rect(x, base - h, 2, h - 2, [28, 22, 20]);
+    b.set(x, base - h, [90, 40, 20]);
+  }
+  b.outline(OUTLINE);
+  return b.toSprite(20, base);
+}
+
+/** Flammen in drei Phasen. */
+export function makeFlames(frame: number): Sprite {
+  const b = new PixelBuffer(36, 34);
+  const base = 30;
+  const colors: RGB[] = [
+    [140, 30, 10],
+    [220, 80, 20],
+    [250, 170, 40],
+    [255, 236, 140],
+  ];
+  for (let k = 0; k < 5; k++) {
+    const cx = 6 + k * 6 + ((frame + k) % 2);
+    const h = 10 + ((k * 7 + frame * 5) % 12);
+    for (let y = 0; y < h; y++) {
+      const t = y / h;
+      const hw = Math.round(3.5 * (1 - t) + 0.5);
+      for (let x = -hw; x <= hw; x++) {
+        const core = Math.abs(x) <= hw * (0.6 - t * 0.3);
+        b.set(cx + x, base - y, colors[core ? (t < 0.5 ? 3 : 2) : t < 0.7 ? 1 : 0], 230);
+      }
+    }
+  }
+  return b.toSprite(18, base);
 }
