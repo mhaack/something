@@ -548,6 +548,11 @@ export class Tools {
             grid,
           );
         }
+        if (def.producesJob) {
+          rows.push(
+            el('div', { className: 'panel-foot', text: t('panel.bred', { n: b.produced }) }),
+          );
+        }
         if (def.output) {
           rows.push(
             el('div', { className: 'panel-foot' }, [

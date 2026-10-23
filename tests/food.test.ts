@@ -89,6 +89,27 @@ describe('Nahrung', () => {
   });
 });
 
+describe('Eselzucht', () => {
+  it('züchtet aus Weizen und Wasser Esel, die ins Lager gehen und Straßen bedienen', () => {
+    const w = flatWorld();
+    const h = hq(w);
+    h.people.donkey = 0;
+    stockHQ(w, 'wheat', 4);
+    stockHQ(w, 'water', 4);
+    const before = countWares(w, 0);
+    const id = buildConnected(w, node(w, 25, 24), 'donkeybreeder');
+    runUntil(w, () => h.people.donkey >= 1, 20000);
+    expect(w.buildings[id].produced).toBeGreaterThanOrEqual(1);
+    const after = countWares(w, 0);
+    expect(after.wheat).toBeLessThan(before.wheat);
+    expect(after.water).toBeLessThan(before.water);
+    // Eine stark befahrene Straße bekommt den gezüchteten Esel.
+    const road = Object.values(w.roads)[0];
+    road.busy = true;
+    runUntil(w, () => !!road.carriers[1] && w.settlers[road.carriers[1]]?.job === 'donkey', 2000);
+  });
+});
+
 describe('Bergbau', () => {
   it('Kohlebergwerk fördert nur mit Nahrung und verbraucht sie', () => {
     const w = flatWorld();

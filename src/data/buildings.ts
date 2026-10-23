@@ -24,6 +24,8 @@ export interface BuildingDef {
   consumesAny: WareType[];
   /** Abgebauter Bodenschatz (Bergwerke). */
   resource: ResourceId;
+  /** Statt einer Ware entsteht eine Person dieses Berufs (Eselzucht), die ins Lager geht. */
+  producesJob: Job | null;
   /** Menügruppe. */
   group: 'basic' | 'food' | 'mining' | 'store';
   /** Eingangspuffer pro Ware. */
@@ -40,6 +42,7 @@ interface DefExtra {
   consumes?: Partial<Record<WareType, number>>;
   consumesAny?: WareType[];
   resource?: ResourceId;
+  producesJob?: Job;
   buildable?: boolean;
 }
 
@@ -63,6 +66,7 @@ function def(
     consumes: extra.consumes ?? {},
     consumesAny: extra.consumesAny ?? [],
     resource: extra.resource ?? Resource.None,
+    producesJob: extra.producesJob ?? null,
     inputs: v.inputs as Partial<Record<WareType, number>>,
     cost: { planks: v.planks, stone: v.stone },
     radius: v.radius,
@@ -96,6 +100,10 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   butcher: def('butcher', 'medium', 'workshop', 'food', 'butcher', 'meat', {
     consumes: { pig: 1 },
   }),
+  donkeybreeder: def('donkeybreeder', 'large', 'workshop', 'food', 'donkeybreeder', null, {
+    consumes: { wheat: 1, water: 1 },
+    producesJob: 'donkey',
+  }),
   coalmine: def('coalmine', 'mine', 'mine', 'mining', 'miner', 'coal', MINE(Resource.Coal)),
   ironmine: def('ironmine', 'mine', 'mine', 'mining', 'miner', 'ironore', MINE(Resource.Iron)),
   goldmine: def('goldmine', 'mine', 'mine', 'mining', 'miner', 'goldore', MINE(Resource.Gold)),
@@ -123,6 +131,7 @@ export const BUILD_MENU: BuildingType[] = [
   'bakery',
   'pigfarm',
   'butcher',
+  'donkeybreeder',
   'coalmine',
   'ironmine',
   'goldmine',

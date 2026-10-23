@@ -14,7 +14,7 @@ import { gridDistance, nodeX, nodeY, nodesInRadius } from './geometry';
 import { isTreeSpot } from './mapgen';
 import { nextInt } from './rng';
 import { freePath } from './routing';
-import { flagLoad } from './store';
+import { flagLoad, newSettler } from './store';
 import { isMatureField, isMatureTree, plantTree, removeObject, sowField } from './trees';
 import { isPassable } from './map';
 import { allocId, type World } from './world';
@@ -417,7 +417,18 @@ function deliverOutput(world: World, s: Settler, b: Building): void {
 }
 
 function finishProduction(world: World, s: Settler, b: Building): void {
-  const out = BUILDINGS[b.type].output;
+  const def = BUILDINGS[b.type];
+  const out = def.output;
+  if (def.producesJob) {
+    // Neues Tier bzw. neue Person läuft selbstständig ins nächste Lager.
+    const born = newSettler(world, b.owner, def.producesJob, b.node);
+    born.state = 'returning';
+    born.path = [flagNode(world, b)];
+    b.produced++;
+    s.state = 'inside';
+    s.wait = Math.max(1, def.restTicks);
+    return;
+  }
   if (out) {
     produce(world, s, b, out);
     s.state = 'toFlagOut';

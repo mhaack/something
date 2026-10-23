@@ -430,6 +430,35 @@ export function makeBuilding(type: BuildingType, color: RGB): Sprite {
       banner(b, 42, base - 28, color);
       return finish(b, 40, base, 36);
     }
+    case 'donkeybreeder': {
+      const b = new PixelBuffer(80, 56);
+      const base = 49;
+      // Stall mit Heuboden
+      timberWall(b, 6, base - 20, 34, 20);
+      roof(b, 23, base - 20, 21, 15, 'shingle');
+      b.rect(18, base - 13, 10, 13, DOOR);
+      b.rect(22, base - 13, 1, 13, PLANK[0]);
+      b.rect(10, base - 17, 5, 3, ROOFS.thatch[2]);
+      // Koppel mit Eseln
+      for (let x = 44; x < 80; x += 5) b.rect(x, base - 8, 1, 8, PLANK[1]);
+      b.rect(44, base - 7, 36, 1, PLANK[2]);
+      b.rect(44, base - 3, 36, 1, PLANK[2]);
+      for (const [x, y] of [
+        [52, base - 4],
+        [67, base - 5],
+      ]) {
+        const body: RGB = [132, 122, 112];
+        b.ellipse(x, y, 4.5, 2.5, (_dx, dy) => (dy > 0.4 ? [190, 182, 170] : body));
+        b.rect(x + 4, y - 4, 2, 4, body);
+        b.rect(x + 5, y - 4, 2, 2, body);
+        b.set(x + 4, y - 6, [92, 84, 78]);
+        for (const lx of [x - 3, x - 1, x + 2, x + 3]) b.rect(lx, y + 2, 1, 3, [92, 84, 78]);
+      }
+      // Heuballen
+      b.ellipse(74, base - 2, 3, 2.5, (dx) => ROOFS.thatch[dx > 0 ? 1 : 3]);
+      banner(b, 36, base - 30, color);
+      return finish(b, 38, base, 36);
+    }
     case 'butcher': {
       const b = new PixelBuffer(56, 48);
       const base = 42;

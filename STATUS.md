@@ -15,7 +15,9 @@
   Metzgerei, Stolleneingänge mit Lore je Erz, Felder in vier Stufen, Geologenschilder.
 - Baumenü mit Gruppen (Holz und Stein, Nahrung, Bergbau, Lager); Infofenster der Bergwerke zeigt
   den Nahrungsvorrat.
-- Tests (64): Fischer, Bauer, Brunnen, Mühle/Bäckerei, Schweinezucht/Metzger, Kohlebergwerk mit
+- Eselzucht (nachgerüstet): Weizen + Wasser → Esel, der ins Lager geht und stark befahrenen
+  Straßen zugeteilt wird.
+- Tests (65): Eselzucht, Fischer, Bauer, Brunnen, Mühle/Bäckerei, Schweinezucht/Metzger, Kohlebergwerk mit
   Nahrungsverbrauch, Warten ohne Nahrung, Erschöpfung, Bergplatz-Regel, Geologe mit Schildern.
 
 ## Davor: Phase 3
@@ -96,7 +98,7 @@
 ### Bekannte Punkte
 - Abgerissene Gebäude verschwinden sofort (Brand-Animation folgt mit dem Militär in Phase 6).
 - Minikarte zeigt Gebäude noch nicht.
-- Fischbestände wachsen nicht nach; Eselzucht fehlt noch (Esel nur aus dem Startbestand).
+- Fischbestände wachsen nicht nach.
 - Minikarte zeigt noch keine Straßen und Grenzen (Phase 6 mit Territorium).
 - Kein Hauptmenü, Seed/Größe/Spieler per URL (Annahme A5).
 - Siedler laufen auf Straßen durcheinander hindurch (kein Ausweichen), wie im Original.

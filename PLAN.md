@@ -128,8 +128,9 @@ STATUS.md und Commit.
   Flaggenplatz.
 - A13: Routing pro Ware nur an Flaggen (nächste Straße), periodisch und nach Netzänderungen neu.
   Pro Abarbeitungsrunde wird je Ziel ein rückwärts berechnetes Distanzfeld geteilt.
-- A14: Esel kommen in Phase 2 aus dem HQ-Startbestand; eine Eselzucht folgt mit den
-  Nahrungsketten. Einmal „stark befahren" bleibt eine Straße es.
+- A14: Esel kommen aus dem HQ-Startbestand und aus der Eselzucht (Weizen + Wasser → Esel). Ein
+  gezüchteter Esel geht selbstständig ins nächste Lager und wird von dort stark befahrenen Straßen
+  zugeteilt. Einmal „stark befahren" bleibt eine Straße es.
 - A15: Testfunktion „Testware hierher schicken" (Taste G) bleibt als Debug-Hilfe erhalten.
 - A16: Zierelemente (Gras, Blumen, Steinchen, Büsche, Schilf) und Wasserreflexe sind reine
   Darstellung, abgeleitet aus einem Knotenhash. Sie stehen nicht im Spielzustand und blockieren

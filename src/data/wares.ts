@@ -49,6 +49,7 @@ export const JOBS = [
   'baker',
   'pigbreeder',
   'butcher',
+  'donkeybreeder',
   'geologist',
   'miner',
 ] as const;
@@ -71,6 +72,7 @@ export const JOB_TOOLS: Record<Job, WareType | null> = {
   baker: 'rollingpin',
   pigbreeder: null,
   butcher: 'cleaver',
+  donkeybreeder: null,
   geologist: 'hammer',
   miner: 'pick',
 };

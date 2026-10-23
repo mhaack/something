@@ -263,6 +263,7 @@ export const FIGURE_LOOKS: Record<string, FigureLook> = {
   baker: { hat: [244, 242, 236], hatStyle: 'cap', apron: [244, 242, 236], tool: null },
   pigbreeder: { hat: [120, 84, 48], hatStyle: 'brim', tool: null },
   butcher: { hat: [200, 60, 50], hatStyle: 'cap', apron: [236, 220, 214], tool: 'cleaver' },
+  donkeybreeder: { hat: [150, 120, 80], hatStyle: 'brim', tool: null },
   geologist: { hat: [110, 110, 120], hatStyle: 'hood', tool: 'hammer' },
   miner: { hat: [220, 190, 60], hatStyle: 'cap', tool: 'pick' },
 };
