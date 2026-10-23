@@ -11,6 +11,7 @@ import { DIRS, Dir, neighbor } from '../sim/geometry';
 import { buildSize } from '../sim/buildings';
 import { isStore } from '../sim/store';
 import type { World } from '../sim/world';
+import type { AiMemory } from './memory';
 
 export interface Slot {
   node: number;
@@ -22,6 +23,7 @@ export interface View {
   world: World;
   player: number;
   level: AiLevel;
+  memory: AiMemory;
   /** Eigene Gebäude je Typ (Baustellen eingeschlossen). */
   counts: Record<BuildingType, number>;
   buildings: Building[];
@@ -81,7 +83,7 @@ export function reachableFlags(world: World, stores: readonly Building[]): Set<n
   return seen;
 }
 
-export function buildView(world: World, player: number, level: AiLevel): View {
+export function buildView(world: World, player: number, level: AiLevel, memory: AiMemory): View {
   const counts = {} as Record<BuildingType, number>;
   for (const t of Object.keys(BUILDINGS) as BuildingType[]) counts[t] = 0;
   const buildings: Building[] = [];
@@ -123,6 +125,7 @@ export function buildView(world: World, player: number, level: AiLevel): View {
     world,
     player,
     level,
+    memory,
     counts,
     buildings,
     sites,

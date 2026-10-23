@@ -8,7 +8,7 @@ import {
   type StockLevel,
 } from './data/balance';
 import { MISSIONS } from './data/missions';
-import { aiCommands } from './ai';
+import { aiCommands, createAiState, type AiState } from './ai';
 import {
   centerOnNode,
   clampCamera,
@@ -91,6 +91,8 @@ class Game {
   debug = new DebugOverlay($('debug'));
   input: Input;
   pending: Command[] = [];
+  /** Gedächtnis der Gegner-KI (außerhalb des Weltzustands, siehe src/ai/memory.ts). */
+  ai: AiState = createAiState();
   /** Alle angewendeten Befehle mit Tick (Grundlage für Replays). */
   replay: ReplayEntry[] = [];
   hoverNode = -1;
@@ -192,6 +194,7 @@ class Game {
     this.world = createWorld(toWorldOptions(o));
     this.pending = [];
     this.replay = [];
+    this.ai = createAiState();
     this.outcomeShown = false;
     this.defeatedSeen.clear();
     this.outcome.hide();
@@ -273,7 +276,7 @@ class Game {
   /** Spielerbefehle und KI-Befehle für den nächsten Tick (beide landen im Replay). */
   private tickCommands(): Command[] {
     const cmds = this.applyPending();
-    for (const c of aiCommands(this.world)) {
+    for (const c of aiCommands(this.world, this.ai)) {
       this.replay.push({ tick: this.world.tick, command: c });
       cmds.push(c);
     }

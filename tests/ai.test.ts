@@ -1,8 +1,10 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { AI, MILITARY } from '../src/data/balance';
 import { Terrain } from '../src/data/terrain';
-import { aiCommands, planAttack, think } from '../src/ai';
-import { reachableFlags } from '../src/ai/view';
+import { aiCommands, createAiState, planAttack, think } from '../src/ai';
+import { buildView, reachableFlags } from '../src/ai/view';
+import { findShortcut } from '../src/ai/placement';
+import { Dir } from '../src/sim/geometry';
 import { isStore } from '../src/sim/store';
 import { checkInvariants } from '../src/sim/invariants';
 import { createEmptyMap } from '../src/sim/map';
@@ -16,12 +18,13 @@ import {
   step,
   type World,
 } from '../src/sim/world';
-import { cmd, runUntil } from './helpers';
+import { cmd, line, runUntil } from './helpers';
 
 /** Lässt die KI-Spieler n Ticks spielen und prüft regelmäßig die Invarianten. */
 function play(w: World, ticks: number, onCheck?: () => void): void {
+  const ai = createAiState();
   for (let i = 0; i < ticks; i++) {
-    step(w, aiCommands(w));
+    step(w, aiCommands(w, ai));
     if (i % 500 === 0) {
       expect(checkInvariants(w)).toEqual([]);
       onCheck?.();
@@ -100,6 +103,7 @@ describe('Gegner-KI: Regeln', () => {
     w.players[0].human = false;
     w.players[0].ai = 'hard';
     w.players[1].ai = null;
+    for (const p of w.players) p.reserve = 0;
     return w;
   }
 
@@ -153,7 +157,8 @@ describe('Gegner-KI: Regeln', () => {
     runUntil(w, () => w.buildings[b].soldiers.length === 1, 10000);
     // Uhr auf den frühesten Angriffszeitpunkt stellen.
     w.tick = AI.ATTACK_START_TICKS.hard;
-    for (let i = 0; i < 20000 && w.buildings[b]?.owner !== 0; i++) step(w, aiCommands(w));
+    const ai = createAiState();
+    for (let i = 0; i < 20000 && w.buildings[b]?.owner !== 0; i++) step(w, aiCommands(w, ai));
     expect(w.buildings[b]?.owner).toBe(0);
     expect(checkInvariants(w)).toEqual([]);
   });
@@ -184,10 +189,54 @@ describe('Gegner-KI: Regeln', () => {
     expect(road && road.type === 'buildRoad' && road.path[0]).toBe(flagNode);
   });
 
+  it('baut eine Querverbindung gegen einen langen Umweg', () => {
+    const w = duel();
+    const start = w.flags[w.buildings[w.players[0].hq].flag].node;
+    // U-förmige Straße: HQ → Osten → Nordosten → Westen; das Ende liegt nah am HQ.
+    const legs: [Dir, number][] = [
+      [Dir.E, 5],
+      [Dir.NE, 3],
+      [Dir.W, 5],
+    ];
+    let from = start;
+    for (const [d, n] of legs) {
+      const path = line(w, from, d, n);
+      cmd(w, { type: 'buildRoad', player: 0, path, autoFlags: false });
+      from = path[path.length - 1];
+    }
+    const view = buildView(w, 0, 'normal', { deposits: [], surveyed: [] });
+    const road = findShortcut(view);
+    expect(road).not.toBeNull();
+    const ends = [road![0], road![road!.length - 1]].sort((a, b) => a - b);
+    expect(ends).toEqual([start, from].sort((a, b) => a - b));
+    expect(road!.length - 1).toBeLessThanOrEqual(AI.SHORTCUT_RANGE + AI.SHORTCUT_SLACK);
+  });
+
+  it('merkt sich Geologenfunde über die Lebensdauer der Schilder hinaus', () => {
+    const w = duel();
+    const mem = { deposits: [], surveyed: [] };
+    w.signs.push({ node: 100, owner: 0, resource: 2, rich: 1, until: w.tick + 10 });
+    w.signs.push({ node: 101, owner: 0, resource: 0, rich: 0, until: w.tick + 10 });
+    w.signs.push({ node: 102, owner: 1, resource: 1, rich: 0, until: w.tick + 10 });
+    think(w, 0, 'normal', mem);
+    w.signs = [];
+    think(w, 0, 'normal', mem);
+    expect(mem.deposits).toEqual([{ node: 100, resource: 2, rich: 1 }]);
+    expect(mem.surveyed).toEqual([100, 101]);
+  });
+
+  it('stellt die Soldatenreserve im HQ ein', () => {
+    const w = duel();
+    w.players[0].reserve = 0;
+    const cmds = think(w, 0, 'hard');
+    expect(cmds).toContainEqual({ type: 'setReserve', player: 0, value: AI.HQ_RESERVE.hard });
+  });
+
   it('plant Militärgebäude nur mit freien Soldaten', () => {
     const w = duel();
     const hq = w.buildings[w.players[0].hq];
     hq.soldiers = [];
+    w.players[0].reserve = 0;
     disarm(w, 0);
     const cmds = think(w, 0, 'easy');
     const military = cmds.filter(
@@ -202,12 +251,13 @@ describe('Gegner-KI: Regeln', () => {
 describe('Gegner-KI: Laufzeit', () => {
   it('denkt auf einer 256er-Karte mit 3 Gegnern schnell genug', () => {
     const w = createWorld({ seed: 4, size: 256, players: 4, ai: ['hard', 'hard', 'hard'] });
+    const ai = createAiState();
     let worst = 0;
     let total = 0;
     const ticks = 1200;
     for (let i = 0; i < ticks; i++) {
       const t0 = performance.now();
-      const c = aiCommands(w);
+      const c = aiCommands(w, ai);
       const dt = performance.now() - t0;
       worst = Math.max(worst, dt);
       total += dt;
