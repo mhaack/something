@@ -324,6 +324,19 @@ export const TREES = {
   MATURE_STAGE: 3,
 } as const;
 
+/** Warenverteilung: Startgewichte je Gruppe und Betrieb (0 bis MAX, 0 = bekommt nichts). */
+export const DISTRIBUTION = {
+  MAX: 10,
+  DEFAULT: {
+    food: { coalmine: 5, ironmine: 5, goldmine: 3, granitemine: 2 },
+    coal: { smelter: 6, mint: 3, toolsmith: 4, weaponsmith: 5 },
+    iron: { toolsmith: 4, weaponsmith: 6 },
+    wheat: { mill: 6, pigfarm: 4, donkeybreeder: 2 },
+    water: { bakery: 6, pigfarm: 4, donkeybreeder: 2 },
+    coins: { guardhut: 5, watchtower: 5, fortress: 5 },
+  } as Record<string, Record<string, number>>,
+} as const;
+
 export const TOOLS = {
   /** Höchster Wert eines Prioritätsreglers. */
   PRIORITY_MAX: 10,

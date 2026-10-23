@@ -3,6 +3,7 @@
  * läuft über einen Befehl, damit Replays (Seed + Befehlsliste) deterministisch nachspielbar sind.
  */
 import type { BuildingType } from '../data/buildings';
+import type { DistributionGroupId } from '../data/distribution';
 import type { ToolWare, WareType } from '../data/wares';
 
 export type Command =
@@ -16,6 +17,14 @@ export type Command =
   | { type: 'sendGeologist'; player: number; flag: number }
   | { type: 'setToolPriority'; player: number; tool: ToolWare; value: number }
   | { type: 'attack'; player: number; target: number; soldiers: number }
+  /** Warenverteilung: Gewicht einer Betriebsart in einer Gruppe. */
+  | {
+      type: 'setDistribution';
+      player: number;
+      group: DistributionGroupId;
+      building: BuildingType;
+      value: number;
+    }
   /** Soldatenreserve im Hauptquartier. */
   | { type: 'setReserve'; player: number; value: number }
   /** Testfunktion: Das HQ schickt eine Ware zu einer Flagge, von dort geht sie zurück ins Lager. */

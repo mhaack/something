@@ -28,6 +28,7 @@ import {
 } from './routing';
 import { isStore, newSettler, startNextStep } from './store';
 import { allocId, type World } from './world';
+import { chargeDelivery, contested, creditOf, weightOf } from './distribution';
 import { recordConsumed } from './economy';
 
 /** Knoten, die ein Gebäude belegt: groß = Bauplatz sowie W, NW und NO, sonst nur der Bauplatz. */
@@ -295,30 +296,77 @@ function storeAvailable(b: Building, type: WareType): number {
   return b.stock[type] - queued;
 }
 
-/** Fordert fehlende Waren aus dem nächsten Lager mit Bestand an. */
+interface WareRequest {
+  b: Building;
+  type: WareType;
+  missing: number;
+  /** Gefundenes Lager (null = noch nicht gesucht, undefined = keins erreichbar). */
+  store: Building | null | undefined;
+}
+
+/** Sucht das nächste Lager mit verfügbarem Bestand für eine Anforderung. */
+function storeFor(world: World, r: WareRequest): Building | undefined {
+  if (r.store && storeAvailable(r.store, r.type) > 0) return r.store;
+  const res = searchFlags(world, r.b.flag, r.b.owner, false, (f) => {
+    const s = world.buildings[world.flags[f].building];
+    return !!s && s.owner === r.b.owner && isStore(s) && storeAvailable(s, r.type) > 0;
+  });
+  r.store = res.found < 0 ? undefined : world.buildings[world.flags[res.found].building];
+  return r.store;
+}
+
+/**
+ * Fordert fehlende Waren aus dem nächsten Lager mit Bestand an. Knappe Waren (Verteilungsgruppen)
+ * gehen Stück für Stück an den Betrieb mit dem höchsten Guthaben (gewichteter Rundlauf).
+ */
 export function requestWares(world: World): void {
   const incoming = incomingMap(world);
+  const plain: WareRequest[] = [];
+  const shared = new Map<string, WareRequest[]>();
   for (const id of Object.keys(world.buildings)) {
     const b = world.buildings[Number(id)];
     if (!b || isStore(b)) continue;
-    const want = wanted(b);
-    for (const type of Object.keys(want) as WareType[]) {
-      let missing = shortage(b, type, incoming.get(b.id));
+    for (const type of Object.keys(wanted(b)) as WareType[]) {
+      const missing = shortage(b, type, incoming.get(b.id));
       if (missing <= 0) continue;
-      const res = searchFlags(world, b.flag, b.owner, false, (f) => {
-        const s = world.buildings[world.flags[f].building];
-        return !!s && s.owner === b.owner && isStore(s) && storeAvailable(s, type) > 0;
-      });
-      if (res.found < 0) continue;
-      const store = world.buildings[world.flags[res.found].building];
-      const before = missing;
-      while (missing > 0 && storeAvailable(store, type) > 0) {
-        store.outQueue.push({ type, dest: b.id, destFlag: 0 });
-        missing--;
+      const r: WareRequest = { b, type, missing, store: null };
+      const g = b.site ? null : contested(type, b.type);
+      if (!g) {
+        plain.push(r);
+        continue;
       }
-      const inc = incoming.get(b.id) ?? emptyWareCounts();
-      inc[type] += before - missing;
-      incoming.set(b.id, inc);
+      if (weightOf(world, b.owner, type, b.type) <= 0) continue;
+      const key = `${b.owner}:${type}`;
+      if (!shared.has(key)) shared.set(key, []);
+      shared.get(key)!.push(r);
+    }
+  }
+  for (const r of plain) {
+    const store = storeFor(world, r);
+    while (store && r.missing > 0 && storeAvailable(store, r.type) > 0) {
+      store.outQueue.push({ type: r.type, dest: r.b.id, destFlag: 0 });
+      r.missing--;
+    }
+  }
+  for (const reqs of shared.values()) {
+    const owner = reqs[0].b.owner;
+    const g = contested(reqs[0].type, reqs[0].b.type)!;
+    let open = reqs;
+    while (open.length > 0) {
+      // Höchstes Guthaben zuerst, bei Gleichstand das ältere Gebäude.
+      let best = open[0];
+      for (const r of open) {
+        const d = creditOf(world, owner, g, r.b.type) - creditOf(world, owner, g, best.b.type);
+        if (d > 0 || (d === 0 && r.b.id < best.b.id)) best = r;
+      }
+      const store = storeFor(world, best);
+      if (!store) {
+        open = open.filter((r) => r !== best);
+        continue;
+      }
+      store.outQueue.push({ type: best.type, dest: best.b.id, destFlag: 0 });
+      chargeDelivery(world, owner, g, best.b.type, new Set(open.map((r) => r.b.type)));
+      if (--best.missing <= 0) open = open.filter((r) => r !== best);
     }
   }
 }
@@ -333,7 +381,12 @@ export function findConsumer(
   const incoming = incomingMap(world);
   const res = searchFlags(world, fromFlag, owner, false, (f) => {
     const b = world.buildings[world.flags[f].building];
-    return !!b && b.owner === owner && shortage(b, type, incoming.get(b.id)) > 0;
+    return (
+      !!b &&
+      b.owner === owner &&
+      (b.site !== null || weightOf(world, owner, type, b.type) > 0) &&
+      shortage(b, type, incoming.get(b.id)) > 0
+    );
   });
   return res.found < 0 ? 0 : world.flags[res.found].building;
 }

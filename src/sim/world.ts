@@ -24,6 +24,7 @@ import type { Command } from './commands';
 import { applyCommand } from './commandHandlers';
 import type { Building, Fire, Flag, PlayerLedger, Road, Settler, Sign, Ware } from './entities';
 import { recomputeTerritory } from './territory';
+import { defaultDistribution, zeroDistributionCredit, type Distribution } from './distribution';
 import { applyTerritoryChange, militaryTick } from './military';
 import type { GameMap } from './map';
 import { generateMap } from './mapgen';
@@ -32,7 +33,7 @@ import { processRouteQueue, scheduleReroutes } from './routing';
 import { updateSettler } from './carriers';
 import { createHQ, requestWorkers, storeTick } from './store';
 
-export const WORLD_VERSION = 9;
+export const WORLD_VERSION = 10;
 
 export interface Player {
   id: number;
@@ -53,6 +54,9 @@ export interface Player {
   toolPriority: Record<ToolWare, number>;
   /** Guthaben für den gewichteten Rundlauf der Werkzeugwahl. */
   toolCredit: Record<ToolWare, number>;
+  /** Warenverteilung: Gewicht je Gruppe und Betriebsart, dazu das Guthaben des Rundlaufs. */
+  distribution: Distribution;
+  distCredit: Distribution;
 }
 
 /** Kompletter, JSON-serialisierbarer Weltzustand. */
@@ -161,6 +165,8 @@ export function createWorldFromMap(
       hq: 0,
       toolPriority: defaultToolPriority(),
       toolCredit: zeroToolCredit(),
+      distribution: defaultDistribution(),
+      distCredit: zeroDistributionCredit(),
     })),
     owner: new Array<number>(n).fill(-1),
     nodeFlag: new Array<number>(n).fill(0),
