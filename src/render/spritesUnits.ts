@@ -245,7 +245,7 @@ export interface FigureLook {
   hat: RGB;
   hatStyle: 'brim' | 'cap' | 'hood';
   apron?: RGB;
-  tool: 'axe' | 'shovel' | 'pick' | 'hammer' | 'saw' | null;
+  tool: 'axe' | 'shovel' | 'pick' | 'hammer' | 'saw' | 'rod' | 'scythe' | 'cleaver' | null;
 }
 
 export const FIGURE_LOOKS: Record<string, FigureLook> = {
@@ -256,6 +256,15 @@ export const FIGURE_LOOKS: Record<string, FigureLook> = {
   forester: { hat: [70, 130, 60], hatStyle: 'brim', tool: 'shovel' },
   stonecutter: { hat: [130, 130, 136], hatStyle: 'cap', tool: 'pick' },
   sawyer: { hat: [70, 90, 160], hatStyle: 'cap', apron: [220, 210, 186], tool: 'saw' },
+  fisher: { hat: [60, 90, 140], hatStyle: 'brim', tool: 'rod' },
+  farmer: { hat: [214, 186, 100], hatStyle: 'brim', tool: 'scythe' },
+  waterer: { hat: [90, 120, 170], hatStyle: 'cap', tool: null },
+  miller: { hat: [236, 232, 220], hatStyle: 'cap', apron: [236, 232, 220], tool: null },
+  baker: { hat: [244, 242, 236], hatStyle: 'cap', apron: [244, 242, 236], tool: null },
+  pigbreeder: { hat: [120, 84, 48], hatStyle: 'brim', tool: null },
+  butcher: { hat: [200, 60, 50], hatStyle: 'cap', apron: [236, 220, 214], tool: 'cleaver' },
+  geologist: { hat: [110, 110, 120], hatStyle: 'hood', tool: 'hammer' },
+  miner: { hat: [220, 190, 60], hatStyle: 'cap', tool: 'pick' },
 };
 
 const METAL: RGB = [196, 198, 208];
@@ -271,7 +280,7 @@ function drawHeldTool(
   dx: number,
   dy: number,
 ): void {
-  const len = tool === 'saw' ? 6 : 5;
+  const len = tool === 'saw' ? 6 : tool === 'rod' ? 9 : tool === 'scythe' ? 7 : 5;
   for (let k = 0; k < len; k++) {
     const c = tool === 'saw' && k > 0 ? (k % 2 ? METAL : METAL_DARK) : FIG_HANDLE;
     b.set(x0 + Math.round(dx * k), y0 + Math.round(dy * k), c);
@@ -300,6 +309,18 @@ function drawHeldTool(
       break;
     case 'saw':
       b.set(hx, hy, FIG_HANDLE);
+      break;
+    case 'rod':
+      b.set(hx + 1, hy, [220, 220, 220]);
+      b.set(hx + 1, hy + 1, [220, 220, 220]);
+      b.set(hx + 1, hy + 2, [200, 40, 30]);
+      break;
+    case 'scythe':
+      for (let k = 1; k <= 4; k++) b.set(hx - k, hy + (k >> 1), k === 1 ? METAL_DARK : METAL);
+      break;
+    case 'cleaver':
+      b.rect(hx, hy - 1, 3, 3, METAL);
+      b.set(hx + 2, hy + 1, METAL_DARK);
       break;
   }
 }

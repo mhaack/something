@@ -8,7 +8,7 @@ import { buildSize } from '../sim/buildings';
 import { buildProgress } from '../sim/workers';
 import { treeStage, treeVariant } from '../sim/trees';
 import type { BuildingType } from '../data/buildings';
-import type { Building } from '../sim/entities';
+import type { Building, Sign } from '../sim/entities';
 import { hash2 } from '../sim/rng';
 import { plannedRoute, waitingFor } from '../sim/routing';
 import type { World } from '../sim/world';
@@ -313,6 +313,8 @@ export class Renderer {
       b.push(s);
     }
 
+    const signs = new Map<number, Sign>();
+    for (const g of world.signs) if (g.until > world.tick) signs.set(g.node, g);
     const flagFrame = Math.floor(opts.animMs / 180) % FLAG_FRAMES;
     let objects = 0;
     let settlers = 0;
@@ -331,6 +333,13 @@ export class Renderer {
         if (obj === MapObject.None && !world.nodeRoad[i] && !world.nodeFlag[i]) {
           if (!world.nodeBuilding[i]) this.drawDecoration(i, x, y, sx, sy);
         }
+        const sign = signs.get(i);
+        if (sign)
+          this.blit(
+            this.sprites.signs[sign.resource]?.[sign.rich] ?? this.sprites.signs[0][0],
+            sx,
+            sy,
+          );
         if (i === opts.ghostFlag) {
           this.ctx.globalAlpha = 0.55;
           this.blit(this.sprites.flags[world.players[opts.player].color][0], sx, sy);
@@ -346,6 +355,9 @@ export class Renderer {
               Math.floor(opts.animMs / 420 + hash2(x, y, 3) * TREE_FRAMES) % TREE_FRAMES;
             this.blit(this.sprites.trees[treeVariant(data)][phase], sx, sy);
           }
+          objects++;
+        } else if (obj === MapObject.Field) {
+          this.blit(this.sprites.fields[Math.min(3, map.objectData[i])], sx, sy);
           objects++;
         } else if (obj === MapObject.Rock) {
           const size = Math.min(
@@ -425,7 +437,8 @@ export class Renderer {
     }
     const color = this.world.players[s.owner].color;
     const fig = this.sprites.figures[s.job];
-    const working = s.next < 0 && (s.state === 'harvest' || (onSite && s.wait > 0));
+    const working =
+      s.next < 0 && (s.state === 'harvest' || s.state === 'geoWork' || (onSite && s.wait > 0));
     if (working) {
       const wf = Math.floor(this.anim / 260 + s.id) % WORK_FRAMES;
       const ox = onSite ? 10 : 0;

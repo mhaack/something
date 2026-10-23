@@ -19,7 +19,9 @@ import {
 } from './spritesUnits';
 import {
   makeBuilding,
+  makeField,
   makeSapling,
+  makeSign,
   makeScaffold,
   makeStakes,
   makeStatusIcon,
@@ -413,6 +415,10 @@ export interface SpriteSet {
   scaffolds: Record<BuildingType, Sprite>;
   stakes: Sprite;
   statusIcons: Sprite[];
+  /** [Stufe 0..3] */
+  fields: Sprite[];
+  /** [Resource-ID][arm=0/reich=1] */
+  signs: Sprite[][];
   /** Figuren je Beruf (Esel separat). */
   figures: Record<Job, FigureSprites>;
   /** [Blick][Frame] */
@@ -476,6 +482,8 @@ export function buildSprites(playerColors: RGB[]): SpriteSet {
     scaffolds,
     stakes: makeStakes(),
     statusIcons: [makeStatusIcon(0), makeStatusIcon(1)],
+    fields: [0, 1, 2, 3].map(makeField),
+    signs: [0, 1, 2, 3, 4].map((r) => [makeSign(r, false), makeSign(r, true)]),
     figures,
     donkeys: [donkeyR, donkeyR.map(mirror)],
     wares,
