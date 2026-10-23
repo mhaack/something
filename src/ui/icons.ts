@@ -3,12 +3,16 @@ import type { WareType } from '../data/wares';
 import type { RGB } from '../render/palette';
 import { PixelBuffer } from '../render/sprites';
 import { makeWare } from '../render/spritesUnits';
+import { makeBuilding } from '../render/spritesBuildings';
+import { PLAYER_COLORS } from '../render/palette';
+import type { BuildingType } from '../data/buildings';
 
 export type IconName =
   | 'select'
   | 'flag'
   | 'road'
   | 'demolish'
+  | 'build'
   | 'buildHelp'
   | 'congestion'
   | 'minimap'
@@ -65,6 +69,13 @@ function draw(name: IconName, b: PixelBuffer): void {
         b.set(15 - k, k, RED);
         b.set(14 - k, k, RED);
       }
+      break;
+    case 'build':
+      b.rect(3, 8, 10, 7, [170, 126, 70]);
+      for (let y = 0; y < 6; y++) b.rect(8 - y - 1, 2 + y, 2 * y + 2, 1, RED);
+      b.rect(7, 11, 3, 4, [70, 46, 24]);
+      b.rect(11, 1, 4, 2, GRAY);
+      b.rect(12, 3, 1, 4, WOOD);
       break;
     case 'buildHelp':
       for (let y = 3; y < 15; y += 4) for (let x = 2; x < 15; x += 4) b.rect(x, y, 2, 1, YELLOW);
@@ -142,6 +153,17 @@ export function icon(name: IconName): HTMLCanvasElement {
     cache.set(name, src);
   }
   return copy(src, 'icon');
+}
+
+/** Gebäudebild (Spielerfarbe) als kleines Canvas für Menüs. */
+export function buildingIcon(type: BuildingType, color: number): HTMLCanvasElement {
+  const key = `building:${type}:${color}`;
+  let src = cache.get(key);
+  if (!src) {
+    src = makeBuilding(type, PLAYER_COLORS[color]).canvas;
+    cache.set(key, src);
+  }
+  return copy(src, 'building-icon');
 }
 
 /** Warensymbol als Canvas für Infofenster. */

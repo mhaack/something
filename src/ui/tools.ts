@@ -7,10 +7,40 @@ import { planRoadSegment, slopeClass, validateRoad } from '../sim/roads';
 import type { World } from '../sim/world';
 import type { RoadPreview } from '../render/renderer';
 import { t, tDyn, type TextKey } from './i18n';
-import { wareIcon } from './icons';
+import { buildingIcon, wareIcon } from './icons';
 import { InfoPanel, Popup, Toast, el, type MenuItem } from './panels';
+import { BUILDINGS, BUILD_MENU, sizeFits, type BuildingType } from '../data/buildings';
+import type { WareType } from '../data/wares';
+import { buildSize, canBuild } from '../sim/buildings';
+import type { Building } from '../sim/entities';
+import { searchFlags } from '../sim/routing';
+import { isStore } from '../sim/store';
+import { buildProgress } from '../sim/workers';
 
-export type ToolMode = 'select' | 'flag' | 'road' | 'demolish';
+/** Ist die Gebäudeflagge über Straßen mit einem eigenen Lager verbunden? */
+function hasStoreConnection(world: World, b: Building): boolean {
+  const res = searchFlags(world, b.flag, b.owner, false, (f) => {
+    const s = world.buildings[world.flags[f].building];
+    return !!s && s.owner === b.owner && isStore(s);
+  });
+  return res.found >= 0;
+}
+
+function statusText(b: Building, workerHere: boolean): string {
+  if (!workerHere) return t('status.noWorker');
+  switch (b.status) {
+    case 'noResources':
+      return t('status.noResources');
+    case 'outputBlocked':
+      return t('status.outputBlocked');
+    case 'waitingInput':
+      return t('status.waitingInput');
+    default:
+      return t('status.working');
+  }
+}
+
+export type ToolMode = 'select' | 'flag' | 'road' | 'demolish' | 'build';
 
 export interface ToolHost {
   world(): World;
@@ -42,6 +72,8 @@ export class Tools {
   buildHelp = false;
   congestion = false;
   hoverInfo: HoverInfo = { tip: null, ghostFlag: -1 };
+  /** Gebäudevorschau beim Überfahren eines Baumenü-Eintrags. */
+  ghostBuilding: { node: number; type: BuildingType } | null = null;
 
   constructor(private host: ToolHost) {}
 
@@ -70,6 +102,7 @@ export class Tools {
       flag: 'hint.flag',
       road: 'hint.road',
       demolish: 'hint.demolish',
+      build: 'hint.build',
     };
     const h = hints[mode];
     this.host.setHint(h ? t(h) : null);
@@ -127,9 +160,21 @@ export class Tools {
       }
       case 'demolish': {
         const fid = w.nodeFlag[node];
-        if (fid) {
-          this.hoverInfo.tip = w.flags[fid].building ? t('msg.removeHQFlag') : t('tip.removeFlag');
-        } else if (w.nodeRoad[node]) this.hoverInfo.tip = t('tip.removeRoad');
+        const bid = w.nodeBuilding[node] || (fid ? w.flags[fid].building : 0);
+        if (bid) {
+          this.hoverInfo.tip =
+            w.buildings[bid].type === 'hq'
+              ? t('msg.removeHQ')
+              : t('tip.removeBuilding', { name: tDyn(`building.${w.buildings[bid].type}`) });
+        } else if (fid) this.hoverInfo.tip = t('tip.removeFlag');
+        else if (w.nodeRoad[node]) this.hoverInfo.tip = t('tip.removeRoad');
+        break;
+      }
+      case 'build': {
+        const size = buildSize(w, this.me, node);
+        this.hoverInfo.tip = size
+          ? t('tip.buildHere', { size: tDyn(`size.${size}`) })
+          : t('tip.noBuild');
         break;
       }
       case 'select':
@@ -205,13 +250,60 @@ export class Tools {
   removeAt(node: number): void {
     const w = this.world;
     const fid = w.nodeFlag[node];
+    const bid = w.nodeBuilding[node];
+    if (bid) return this.removeBuilding(bid);
     if (fid) {
-      if (w.flags[fid].building) return this.host.toast.show(t('msg.removeHQFlag'));
+      const b = w.buildings[w.flags[fid].building];
+      if (b && b.type === 'hq') return this.host.toast.show(t('msg.removeHQFlag'));
       this.host.enqueue({ type: 'removeFlag', player: this.me, flag: fid });
       return;
     }
     const rid = w.nodeRoad[node];
     if (rid) this.host.enqueue({ type: 'removeRoad', player: this.me, road: rid });
+  }
+
+  removeBuilding(id: number): void {
+    const b = this.world.buildings[id];
+    if (!b || b.owner !== this.me) return;
+    if (b.type === 'hq') return this.host.toast.show(t('msg.removeHQ'));
+    this.host.enqueue({ type: 'removeBuilding', player: this.me, building: id });
+    this.host.info.close();
+  }
+
+  placeBuilding(node: number, type: BuildingType): void {
+    const r = canBuild(this.world, this.me, node, type);
+    if (r !== 'ok') return this.host.toast.show(t(`msg.build.${r}` as TextKey));
+    this.host.enqueue({ type: 'placeBuilding', player: this.me, node, building: type });
+  }
+
+  /** Menüeinträge für alle Gebäude, die auf den Platz passen. */
+  private buildItems(node: number): MenuItem[] {
+    const size = buildSize(this.world, this.me, node);
+    const items: MenuItem[] = [];
+    for (const type of BUILD_MENU) {
+      const def = BUILDINGS[type];
+      if (!sizeFits(def.size, size)) continue;
+      const cost = [
+        def.cost.planks ? t('cost.planks', { n: def.cost.planks }) : '',
+        def.cost.stone ? t('cost.stone', { n: def.cost.stone }) : '',
+      ]
+        .filter(Boolean)
+        .join(' · ');
+      items.push({
+        label: tDyn(`building.${type}`),
+        key: cost,
+        icon: buildingIcon(type, this.world.players[this.me].color),
+        action: () => this.placeBuilding(node, type),
+        onHover: (on) => (this.ghostBuilding = on ? { node, type } : null),
+      });
+    }
+    return items;
+  }
+
+  private openBuildMenu(node: number, cssX: number, cssY: number): void {
+    const items = this.buildItems(node);
+    if (items.length === 0) return this.host.toast.show(t('tip.noBuild'));
+    this.host.popup.show(cssX, cssY, t('tool.build'), items, () => (this.ghostBuilding = null));
   }
 
   sendWare(node: number): void {
@@ -245,6 +337,9 @@ export class Tools {
         return this.startRoad(node);
       case 'demolish':
         return this.removeAt(node);
+      case 'build':
+        this.selectedNode = node;
+        return this.openBuildMenu(node, cssX, cssY);
       case 'select':
         return this.selectClick(node, cssX, cssY);
     }
@@ -303,7 +398,8 @@ export class Tools {
       return this.host.toast.show(t(`msg.flag.${r}` as TextKey));
     }
     items.push({ label: t('action.placeFlag'), key: 'F', action: () => this.placeFlag(node) });
-    this.host.popup.show(cssX, cssY, t('tool.flag'), items);
+    items.push(...this.buildItems(node));
+    this.host.popup.show(cssX, cssY, t('panel.place'), items, () => (this.ghostBuilding = null));
   }
 
   /** Tastenkürzel. Liefert true, wenn die Taste verbraucht wurde. */
@@ -333,6 +429,9 @@ export class Tools {
       case 'Digit4':
         this.setMode('demolish');
         return true;
+      case 'Digit5':
+        this.setMode('build');
+        return true;
       case 'KeyF':
         if (hoverNode >= 0) this.placeFlag(hoverNode);
         return true;
@@ -359,7 +458,93 @@ export class Tools {
 
   private openBuilding(id: number): void {
     this.host.popup.hide();
-    this.host.info.open(t('panel.hq'), () => {
+    const b0 = this.world.buildings[id];
+    if (!b0) return;
+    if (isStore(b0)) return this.openStore(id);
+    const title = b0.site
+      ? t('panel.site', { name: tDyn(`building.${b0.type}`) })
+      : tDyn(`building.${b0.type}`);
+    this.host.info.open(title, () => {
+      const w = this.world;
+      const b = w.buildings[id];
+      if (!b) return null;
+      const def = BUILDINGS[b.type];
+      const rows: HTMLElement[] = [];
+      const connected = hasStoreConnection(w, b);
+      const worker = w.settlers[b.worker];
+      const workerHere = !!worker && worker.home === b.id && worker.state !== 'toBuilding';
+      if (b.site) {
+        const p = Math.round(buildProgress(w, b) * 100);
+        rows.push(el('div', { className: 'progress' }, [el('div', { className: 'bar' })]));
+        (rows[0].firstChild as HTMLElement).style.width = `${p}%`;
+        rows.push(
+          el('div', {
+            text: b.site.stage === 'level' ? t('status.leveling') : t('status.building', { p }),
+          }),
+        );
+        const mats = el('div', { className: 'ware-grid' });
+        for (const type of ['planks', 'stone'] as const) {
+          const need = type === 'planks' ? def.cost.planks : def.cost.stone;
+          if (!need) continue;
+          const used = type === 'planks' ? b.site.usedPlanks : b.site.usedStone;
+          mats.append(
+            el('div', { className: 'ware-cell' }, [
+              wareIcon(type),
+              el('span', { text: `${used + b.stock[type]}/${need}` }),
+            ]),
+          );
+        }
+        rows.push(el('div', { className: 'panel-sub', text: t('panel.material') }), mats);
+      } else {
+        rows.push(
+          el('div', { className: `status status-${b.status}`, text: statusText(b, workerHere) }),
+        );
+        const inputs = Object.entries(def.inputs) as [WareType, number][];
+        if (inputs.length) {
+          const grid = el('div', { className: 'ware-grid' });
+          for (const [type, max] of inputs) {
+            grid.append(
+              el('div', { className: 'ware-cell' }, [
+                wareIcon(type),
+                el('span', { text: `${b.stock[type]}/${max}` }),
+              ]),
+            );
+          }
+          rows.push(el('div', { className: 'panel-sub', text: t('panel.inputs') }), grid);
+        }
+        if (def.output) {
+          rows.push(
+            el('div', { className: 'panel-foot' }, [
+              wareIcon(def.output),
+              el('span', { text: t('panel.produced', { n: b.produced }) }),
+            ]),
+          );
+        }
+      }
+      const job = b.site ? (b.site.stage === 'level' ? 'leveler' : 'builder') : def.worker;
+      if (job) {
+        rows.push(
+          el('div', {
+            className: 'panel-foot',
+            text: `${tDyn(`job.${job}`)}: ${
+              workerHere ? t('panel.present') : worker ? t('panel.onTheWay') : t('panel.missing')
+            }`,
+          }),
+        );
+      }
+      if (!connected) rows.push(el('div', { className: 'warn', text: t('msg.noStoreConnection') }));
+      if (b.owner === this.me) {
+        const btn = el('button', { className: 'panel-action', text: t('action.removeBuilding') });
+        btn.addEventListener('click', () => this.removeBuilding(id));
+        rows.push(btn);
+      }
+      return rows;
+    });
+  }
+
+  private openStore(id: number): void {
+    const b0 = this.world.buildings[id];
+    this.host.info.open(tDyn(`building.${b0.type}`), () => {
       const b = this.world.buildings[id];
       if (!b) return null;
       const grid = el('div', { className: 'ware-grid' });
@@ -373,6 +558,7 @@ export class Tools {
       }
       const people = el('table', { className: 'stock' });
       for (const j of JOBS) {
+        if (!b.people[j] && j !== 'carrier') continue;
         people.append(
           el('tr', {}, [
             el('td', { text: tDyn(`job.${j}`) }),
@@ -380,7 +566,7 @@ export class Tools {
           ]),
         );
       }
-      return [
+      const rows: HTMLElement[] = [
         el('div', { className: 'panel-sub', text: t('panel.wares') }),
         grid,
         el('div', { className: 'panel-sub', text: t('panel.people') }),
@@ -390,6 +576,12 @@ export class Tools {
           text: `${t('panel.outQueue')}: ${b.outQueue.length}`,
         }),
       ];
+      if (b.type !== 'hq' && b.owner === this.me) {
+        const btn = el('button', { className: 'panel-action', text: t('action.removeBuilding') });
+        btn.addEventListener('click', () => this.removeBuilding(id));
+        rows.push(btn);
+      }
+      return rows;
     });
   }
 

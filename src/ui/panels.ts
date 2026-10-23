@@ -2,10 +2,13 @@ import { VIEW } from '../data/balance';
 
 export interface MenuItem {
   label: string;
-  /** Tastenkürzel zur Anzeige. */
+  /** Tastenkürzel bzw. Zusatzinfo (rechts). */
   key?: string;
+  icon?: HTMLElement;
   action: () => void;
   disabled?: boolean;
+  /** Maus über dem Eintrag (für Vorschauen). */
+  onHover?: (on: boolean) => void;
 }
 
 /** Kontextmenü an der Mausposition. */
@@ -21,7 +24,17 @@ export class Popup {
     return !this.el.hidden;
   }
 
-  show(cssX: number, cssY: number, title: string, items: MenuItem[]): void {
+  private onClose: (() => void) | null = null;
+
+  show(
+    cssX: number,
+    cssY: number,
+    title: string,
+    items: MenuItem[],
+    onClose: (() => void) | null = null,
+  ): void {
+    this.onClose?.();
+    this.onClose = onClose;
     this.el.replaceChildren();
     const h = document.createElement('div');
     h.className = 'panel-title';
@@ -29,7 +42,12 @@ export class Popup {
     this.el.append(h);
     for (const it of items) {
       const b = document.createElement('button');
-      b.append(el('span', { text: it.label }));
+      if (it.icon) b.append(it.icon);
+      b.append(el('span', { className: 'label', text: it.label }));
+      if (it.onHover) {
+        b.addEventListener('pointerenter', () => it.onHover!(true));
+        b.addEventListener('pointerleave', () => it.onHover!(false));
+      }
       if (it.key) b.append(el('kbd', { text: it.key }));
       b.disabled = !!it.disabled;
       b.addEventListener('click', (e) => {
@@ -47,6 +65,8 @@ export class Popup {
 
   hide(): void {
     this.el.hidden = true;
+    this.onClose?.();
+    this.onClose = null;
   }
 }
 

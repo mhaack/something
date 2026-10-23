@@ -489,3 +489,66 @@ table.stock td:last-child {
     bottom: 70px;
   }
 }
+
+canvas.building-icon {
+  height: 28px;
+  width: auto;
+  image-rendering: pixelated;
+  flex: none;
+}
+
+#popup button .label {
+  flex: 1;
+}
+
+#popup button kbd {
+  white-space: nowrap;
+}
+
+.progress {
+  height: 8px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid #000;
+  margin: 4px 0;
+}
+
+.progress .bar {
+  height: 100%;
+  background: linear-gradient(180deg, #f8e070, #c89a28);
+}
+
+.status {
+  font-weight: bold;
+}
+
+.status-noResources,
+.status-outputBlocked,
+.warn {
+  color: #ff9a7a;
+}
+
+.status-waitingInput {
+  color: #f8d878;
+}
+
+.panel-foot {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+button.panel-action {
+  margin-top: 10px;
+  width: 100%;
+  font: inherit;
+  color: var(--text);
+  background: linear-gradient(180deg, #a03a20, var(--danger));
+  border: 1px solid #000;
+  padding: 4px;
+  cursor: pointer;
+  text-shadow: 1px 1px 0 #000;
+}
+
+button.panel-action:hover {
+  filter: brightness(1.2);
+}

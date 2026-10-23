@@ -63,6 +63,8 @@ class Game {
   private frameMs = 0;
   private tickMs = 0;
   private minimapVisible = true;
+  private minimapRevision = 0;
+  private minimapBuilt = 0;
 
   constructor(private canvas: HTMLCanvasElement) {
     this.world = createWorld(readOptions());
@@ -316,7 +318,14 @@ class Game {
       selectedWare: this.tools.selectedWare,
       selectedNode: this.tools.selectedNode,
       ghostFlag: this.tools.hoverInfo.ghostFlag,
+      ghostBuilding: this.tools.ghostBuilding,
     });
+    // Minikarte nach Kartenänderungen (Bäume, Felsen, Planieren) gedrosselt neu aufbauen.
+    if (this.world.mapRevision !== this.minimapRevision && ts - this.minimapBuilt > 1500) {
+      this.minimap.rebuild();
+      this.minimapRevision = this.world.mapRevision;
+      this.minimapBuilt = ts;
+    }
     this.info.refresh();
     if (this.minimapVisible) this.minimap.draw(this.cam);
     this.frameMs = this.frameMs * 0.9 + (performance.now() - r0) * 0.1;

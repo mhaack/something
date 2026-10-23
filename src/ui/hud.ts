@@ -85,6 +85,7 @@ export class Hud {
         () => actions.setMode('demolish'),
         (s) => s.mode === 'demolish',
       ],
+      ['build', 'tool.build', '5', () => actions.setMode('build'), (s) => s.mode === 'build'],
     ]);
     group([
       ['buildHelp', 'tool.buildHelp', 'H', () => actions.toggleBuildHelp(), (s) => s.buildHelp],
