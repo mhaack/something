@@ -727,3 +727,51 @@ canvas.chart {
   display: grid;
   gap: 3px;
 }
+
+.ranks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-bottom: 4px;
+}
+
+.rank {
+  min-width: 18px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 1px 4px;
+  border: 1px solid #000;
+  background: #6a6a70;
+}
+
+.rank-1 {
+  background: #8a5a28;
+}
+
+.rank-2 {
+  background: #9a9eaa;
+  color: #111;
+  text-shadow: none;
+}
+
+.rank-3 {
+  background: #c89a28;
+  color: #111;
+  text-shadow: none;
+}
+
+.rank-4 {
+  background: #b02a2a;
+}
+
+.attack-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.attack-row .chip {
+  min-width: 36px;
+  font-weight: bold;
+}

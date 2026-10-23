@@ -397,11 +397,29 @@ export class StatsWindow {
       );
     }
     const ledger = w.ledger[this.player].wares;
+    const byRank = [0, 0, 0, 0, 0];
+    for (const id in w.buildings) {
+      const b = w.buildings[id];
+      if (b.owner === this.player) for (const r of b.soldiers) byRank[r]++;
+    }
+    for (const id in w.settlers) {
+      const s = w.settlers[id];
+      if (s.owner === this.player && s.job === 'soldier') byRank[s.rank]++;
+    }
+    const ranks = el('div', { className: 'ranks' });
+    byRank.forEach((n, r) => {
+      const pill = el('span', {
+        className: `rank rank-${r}`,
+        text: t('stats.rankRow', { rank: tDyn(`rank.${r}`), n }),
+      });
+      ranks.append(pill);
+    });
     return [
       table,
       el('div', { className: 'panel-sub', text: t('stats.missingTools') }),
       list,
       el('div', { className: 'panel-sub', text: t('stats.soldiers') }),
+      ranks,
       el('div', { text: t('stats.weapons', { s: ledger.sword, h: ledger.shield }) }),
     ];
   }

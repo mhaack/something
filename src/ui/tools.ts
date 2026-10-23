@@ -16,6 +16,7 @@ import type { Building } from '../sim/entities';
 import { searchFlags } from '../sim/routing';
 import { isStore } from '../sim/store';
 import { buildProgress } from '../sim/workers';
+import { availableAttackers, capacity, isAttackable } from '../sim/military';
 
 /** Ist die Gebäudeflagge über Straßen mit einem eigenen Lager verbunden? */
 function hasStoreConnection(world: World, b: Building): boolean {
@@ -180,6 +181,11 @@ export class Tools {
         break;
       }
       case 'select': {
+        const eb = w.buildings[w.nodeBuilding[node]];
+        if (eb && eb.owner !== this.me && isAttackable(w, this.me, eb)) {
+          this.hoverInfo.tip = t('tip.enemy');
+          break;
+        }
         const sign = w.signs.find((g) => g.node === node && g.until > w.tick);
         if (sign) {
           const res = tDyn(`resource.${sign.resource}`);
@@ -488,10 +494,13 @@ export class Tools {
 
   // --- Infofenster ------------------------------------------------------------------------
 
+  private attackCount = 0;
+
   private openBuilding(id: number): void {
     this.host.popup.hide();
     const b0 = this.world.buildings[id];
     if (!b0) return;
+    if (b0.owner !== this.me) return this.openEnemy(id);
     if (isStore(b0)) return this.openStore(id);
     const title = b0.site
       ? t('panel.site', { name: tDyn(`building.${b0.type}`) })
@@ -575,11 +584,81 @@ export class Tools {
           }),
         );
       }
+      if (def.kind === 'military' && !b.site) rows.unshift(...this.garrisonRows(b));
       if (!connected) rows.push(el('div', { className: 'warn', text: t('msg.noStoreConnection') }));
       if (b.owner === this.me) {
         const btn = el('button', { className: 'panel-action', text: t('action.removeBuilding') });
         btn.addEventListener('click', () => this.removeBuilding(id));
         rows.push(btn);
+      }
+      return rows;
+    });
+  }
+
+  /** Besatzung mit Rangabzeichen. */
+  private garrisonRows(b: Building): HTMLElement[] {
+    const ranks = el('div', { className: 'ranks' });
+    for (const r of [...b.soldiers].sort((x, y) => y - x)) {
+      const pill = el('span', { className: `rank rank-${r}`, text: String(r) });
+      pill.title = tDyn(`rank.${r}`);
+      ranks.append(pill);
+    }
+    const head =
+      b.type === 'hq'
+        ? t('panel.garrisonHQ', { n: b.soldiers.length })
+        : t('panel.garrison', { n: b.soldiers.length, max: capacity(b) });
+    const rows = [el('div', { className: 'panel-sub', text: head }), ranks];
+    if (b.type !== 'hq' && b.soldiers.length === 0) {
+      rows.push(el('div', { className: 'warn', text: t('panel.noSoldiers') }));
+    }
+    return rows;
+  }
+
+  /** Feindliches Gebäude: Besatzung und Angriff planen. */
+  private openEnemy(id: number): void {
+    const b0 = this.world.buildings[id];
+    this.attackCount = availableAttackers(this.world, this.me, b0);
+    this.host.info.open(t('panel.enemy', { name: tDyn(`building.${b0.type}`) }), () => {
+      const w = this.world;
+      const b = w.buildings[id];
+      if (!b || b.owner === this.me) return null;
+      if (!isAttackable(w, this.me, b)) return [];
+      const avail = availableAttackers(w, this.me, b);
+      this.attackCount = Math.max(avail ? 1 : 0, Math.min(this.attackCount, avail));
+      const rows: HTMLElement[] = [
+        el('div', { text: t('panel.defenders', { n: b.soldiers.length }) }),
+        el('div', {
+          className: avail ? '' : 'warn',
+          text: avail ? t('panel.attackers', { n: avail }) : t('panel.noAttackers'),
+        }),
+      ];
+      if (avail > 0) {
+        const fewer = el('button', { className: 'chip', text: '−' });
+        fewer.title = t('action.fewer');
+        fewer.addEventListener('click', () => {
+          this.attackCount = Math.max(1, this.attackCount - 1);
+          this.host.info.refresh(true);
+        });
+        const more = el('button', { className: 'chip', text: '+' });
+        more.title = t('action.more');
+        more.addEventListener('click', () => {
+          this.attackCount = Math.min(avail, this.attackCount + 1);
+          this.host.info.refresh(true);
+        });
+        const go = el('button', {
+          className: 'panel-action attack',
+          text: t('action.attack', { n: this.attackCount }),
+        });
+        go.addEventListener('click', () => {
+          this.host.enqueue({
+            type: 'attack',
+            player: this.me,
+            target: id,
+            soldiers: this.attackCount,
+          });
+          this.host.toast.show(t('msg.attackStarted', { n: this.attackCount }));
+        });
+        rows.push(el('div', { className: 'attack-row' }, [fewer, more]), go);
       }
       return rows;
     });
@@ -610,6 +689,7 @@ export class Tools {
         );
       }
       const rows: HTMLElement[] = [
+        ...(b.type === 'hq' ? this.garrisonRows(b) : []),
         el('div', { className: 'panel-sub', text: t('panel.wares') }),
         grid,
         el('div', { className: 'panel-sub', text: t('panel.people') }),
