@@ -39,14 +39,91 @@ export function processRouteQueue(world: World): void {
   let budget = TRANSPORT.ROUTES_PER_TICK;
   let i = 0;
   const q = world.routeQueue;
+  // Distanzfelder gelten nur innerhalb dieses Aufrufs (keine Wiederverwendung über Ticks).
+  const ctx: RouteContext = { fields: new Map() };
   while (i < q.length && budget > 0) {
     const w = world.wares[q[i++]];
     if (!w) continue;
     w.routePending = false;
-    routeWare(world, w);
+    routeWare(world, w, ctx);
     budget--;
   }
   q.splice(0, i);
+}
+
+/** Rückwärts berechnete Kosten jeder Flagge bis zum nächsten Ziel (inklusive Stau-Zuschlag). */
+interface DistField {
+  dist: Map<number, number>;
+  /** Erreichte Zielflagge pro Flagge. */
+  goal: Map<number, number>;
+}
+
+export interface RouteContext {
+  fields: Map<string, DistField>;
+}
+
+/** Kosten der gerichteten Kante von Flagge `from` über Straße `road` inklusive Stau-Zuschlag. */
+function edgeCost(world: World, road: Road, from: number): number {
+  return (
+    (road.flagA === from ? road.costAB : road.costBA) +
+    TRANSPORT.CONGESTION_COST * waitingFor(world, from, road.id)
+  );
+}
+
+function buildField(world: World, owner: number, goals: readonly number[]): DistField {
+  const dist = new Map<number, number>();
+  const goal = new Map<number, number>();
+  const done = new Set<number>();
+  const heap = new MinHeap();
+  for (const g of goals) {
+    dist.set(g, 0);
+    goal.set(g, g);
+    heap.push(0, g);
+  }
+  while (heap.size > 0) {
+    const [d, o] = heap.pop();
+    if (done.has(o)) continue;
+    done.add(o);
+    for (const r of world.flags[o].roads) {
+      if (r <= 0) continue;
+      const road = world.roads[r];
+      const f = road.flagA === o ? road.flagB : road.flagA;
+      const ff = world.flags[f];
+      if (!ff || ff.owner !== owner || done.has(f)) continue;
+      const nd = d + edgeCost(world, road, f);
+      const old = dist.get(f);
+      if (old === undefined || nd < old) {
+        dist.set(f, nd);
+        goal.set(f, goal.get(o)!);
+        heap.push(nd, f);
+      }
+    }
+  }
+  return { dist, goal };
+}
+
+function fieldFor(
+  world: World,
+  ctx: RouteContext,
+  key: string,
+  owner: number,
+  goals: () => number[],
+): DistField {
+  let f = ctx.fields.get(key);
+  if (!f) {
+    f = buildField(world, owner, goals());
+    ctx.fields.set(key, f);
+  }
+  return f;
+}
+
+function storeFlags(world: World, owner: number): number[] {
+  const out: number[] = [];
+  for (const id in world.buildings) {
+    const b = world.buildings[id];
+    if (b.owner === owner && isStore(b)) out.push(b.flag);
+  }
+  return out;
 }
 
 /** Zahl der Waren an einer Flagge, die auf eine bestimmte Straße warten. */
@@ -124,15 +201,15 @@ function isStoreFlagOf(world: World, flagId: number, owner: number): boolean {
 }
 
 /** Bestimmt für eine Ware auf einer Flagge die nächste Straße (oder liefert sie direkt ab). */
-export function routeWare(world: World, w: Ware): void {
+export function routeWare(world: World, w: Ware, ctx: RouteContext = { fields: new Map() }): void {
   if (!w.flag || w.carrier || w.reservedBy) return;
   const flag = world.flags[w.flag];
   if (w.destFlag && (!world.flags[w.destFlag] || w.destFlag === w.flag)) w.destFlag = 0;
-  let isTarget: (f: number) => boolean;
+  let field: DistField;
   let toStore = false;
   if (w.destFlag) {
     const df = w.destFlag;
-    isTarget = (f) => f === df;
+    field = fieldFor(world, ctx, `f${df}`, w.owner, () => [df]);
   } else {
     const dest: Building | undefined = w.dest ? world.buildings[w.dest] : undefined;
     if (w.dest && !dest) w.dest = 0;
@@ -141,24 +218,35 @@ export function routeWare(world: World, w: Ware): void {
         acceptWare(world, dest, w);
         return;
       }
-      isTarget = (f) => f === dest.flag;
+      field = fieldFor(world, ctx, `f${dest.flag}`, w.owner, () => [dest.flag]);
     } else {
       if (isStoreFlagOf(world, w.flag, w.owner)) {
         acceptWare(world, world.buildings[flag.building], w);
         return;
       }
       toStore = true;
-      isTarget = (f) => isStoreFlagOf(world, f, w.owner);
+      field = fieldFor(world, ctx, `s${w.owner}`, w.owner, () => storeFlags(world, w.owner));
     }
   }
-  const res = searchFlags(world, w.flag, w.owner, true, isTarget);
-  if (res.found < 0) {
-    w.nextRoad = 0;
-    return;
+  // Beste ausgehende Straße: Kantenkosten + Restdistanz des Nachbarn.
+  let best = 0;
+  let bestCost = Infinity;
+  let bestGoal = 0;
+  for (const r of flag.roads) {
+    if (r <= 0) continue;
+    const road = world.roads[r];
+    const other = road.flagA === w.flag ? road.flagB : road.flagA;
+    const rest = field.dist.get(other);
+    if (rest === undefined) continue;
+    const c = edgeCost(world, road, w.flag) + rest;
+    if (c < bestCost) {
+      bestCost = c;
+      best = r;
+      bestGoal = field.goal.get(other)!;
+    }
   }
-  if (toStore) w.dest = world.flags[res.found].building;
-  const steps = routeSteps(res, w.flag);
-  w.nextRoad = steps.length > 0 ? steps[0][0] : 0;
+  w.nextRoad = best;
+  if (best && toStore) w.dest = world.flags[bestGoal].building;
 }
 
 /** Geplante Flaggenroute einer Ware (für das Debug-Overlay). */

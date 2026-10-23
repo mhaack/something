@@ -1,6 +1,7 @@
 import { TERRAIN_RULES, TRANSPORT } from '../data/balance';
 import { MapObject } from '../data/terrain';
-import { dirBetween, type Dir } from './geometry';
+import { DIRS, dirBetween, gridDistance, neighbor, nodeX, nodeY, type Dir } from './geometry';
+import { MinHeap } from './heap';
 import { isWalkableTerrain } from './map';
 import { canPlaceFlag, placeFlag } from './flags';
 import type { Flag, Road, Settler } from './entities';
@@ -329,4 +330,73 @@ export function removeRoad(world: World, roadId: number): void {
     releaseSettler(world, s);
   }
   markNetworkChanged(world);
+}
+
+/**
+ * Plant ein Straßenteilstück vom Ende eines angefangenen Pfads zu `target` (A* über freie Knoten).
+ * Das Ziel darf eine eigene Flagge oder ein gültiger Flaggenplatz sein. Liefert die neuen Knoten
+ * (ohne den bisherigen Endknoten) oder null.
+ */
+export function planRoadSegment(
+  world: World,
+  player: number,
+  path: readonly number[],
+  target: number,
+): number[] | null {
+  const start = path[path.length - 1];
+  if (target === start || path.includes(target)) return null;
+  const map = world.map;
+  const tf = world.flags[world.nodeFlag[target]];
+  const targetOk =
+    (tf && tf.owner === player) ||
+    isRoadNodeFree(world, player, target) ||
+    canPlaceFlag(world, player, target) === 'ok';
+  if (!targetOk) return null;
+  const used = new Set(path);
+  const tx = nodeX(map, target);
+  const ty = nodeY(map, target);
+  const h = (n: number): number =>
+    gridDistance(nodeX(map, n), nodeY(map, n), tx, ty) * TRANSPORT.WALK_TICKS_PER_STEP;
+  const g = new Map<number, number>([[start, 0]]);
+  const prev = new Map<number, number>();
+  const closed = new Set<number>();
+  const heap = new MinHeap();
+  heap.push(h(start), start);
+  let expansions = 0;
+  while (heap.size > 0 && expansions < TRANSPORT.ROAD_PLAN_MAX_EXPANSIONS) {
+    const [, n] = heap.pop();
+    if (closed.has(n)) continue;
+    if (n === target) {
+      const out: number[] = [];
+      let c = target;
+      while (c !== start) {
+        out.push(c);
+        c = prev.get(c)!;
+      }
+      return out.reverse();
+    }
+    closed.add(n);
+    expansions++;
+    for (const d of DIRS) {
+      const m = neighbor(map, n, d);
+      if (m < 0 || closed.has(m) || used.has(m)) continue;
+      if (m !== target && !isRoadNodeFree(world, player, m)) continue;
+      if (!isRoadStepAllowed(world, n, m)) continue;
+      const ng = g.get(n)! + stepTicks(world, n, m);
+      const old = g.get(m);
+      if (old === undefined || ng < old) {
+        g.set(m, ng);
+        prev.set(m, n);
+        heap.push(ng + h(m), m);
+      }
+    }
+  }
+  return null;
+}
+
+/** Steigungsklasse eines Schritts: 0 eben, 1 leicht, 2 steil (für die Anzeige). */
+export function slopeClass(world: World, a: number, b: number): 0 | 1 | 2 {
+  const dh = Math.abs(world.map.heights[b] - world.map.heights[a]);
+  if (dh >= TERRAIN_RULES.ROAD_STEEP_SLOPE) return 2;
+  return dh >= 2 ? 1 : 0;
 }

@@ -47,6 +47,8 @@ function stand(world: World, s: Settler): void {
       s.state = 'idle';
       return;
     case 'idle': {
+      // Gestaffelte Arbeitssuche spart Rechenzeit bei vielen wartenden Trägern.
+      if ((s.id + world.tick) % TRANSPORT.IDLE_CHECK_INTERVAL !== 0) return;
       const road = world.roads[s.road];
       if (!road) return releaseSettler(world, s);
       findWork(world, s, road, 0);

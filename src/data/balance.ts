@@ -93,6 +93,12 @@ export const VIEW = {
   TERRAIN_CACHE_MAX: 160,
   /** Pixel pro Knoten der Minikarte (horizontal doppelt, wegen 2:1-Kachelseitenverhältnis). */
   MINIMAP_MAX_PIXELS: 192,
+  /** Stau-Overlay: ab so vielen Waren wird eine Flagge markiert. */
+  CONGESTION_WARN: 5,
+  /** Aktualisierungsintervall der Infofenster in ms. */
+  PANEL_REFRESH_MS: 250,
+  /** Anzeigedauer von Meldungen in ms. */
+  TOAST_MS: 2500,
 } as const;
 
 export const TRANSPORT = {
@@ -123,8 +129,12 @@ export const TRANSPORT = {
   /** Esel: Auswertungsfenster und Mindestzahl transportierter Waren für „stark befahren". */
   TRAFFIC_WINDOW_TICKS: 1200,
   BUSY_ROAD_THRESHOLD: 12,
+  /** Wartende Träger suchen nur alle n Ticks nach Arbeit (gestaffelt nach ID). */
+  IDLE_CHECK_INTERVAL: 4,
   /** Intervall, in dem fehlende Träger/Esel angefordert werden. */
   WORKER_REQUEST_INTERVAL_TICKS: 20,
+  /** Höchstzahl Knotenexpansionen bei der Straßenplanung im Bau-Modus. */
+  ROAD_PLAN_MAX_EXPANSIONS: 3000,
   /** Höchstzahl Knotenexpansionen für Querfeldein-Wege (A*). */
   FREE_WALK_MAX_EXPANSIONS: 20000,
 } as const;
