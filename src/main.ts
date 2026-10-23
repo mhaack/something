@@ -9,8 +9,11 @@ import {
 } from './render/camera';
 import { Minimap } from './render/minimap';
 import { Renderer } from './render/renderer';
-import type { Command } from './sim/commands';
+import type { Command, ReplayEntry } from './sim/commands';
+import { applyCommand } from './sim/commandHandlers';
 import { createWorld, step, type World } from './sim/world';
+import { InfoPanel, Popup, Toast } from './ui/panels';
+import { Tools } from './ui/tools';
 import { GameClock } from './ui/clock';
 import { DebugOverlay } from './ui/debugOverlay';
 import { t } from './ui/i18n';
@@ -43,7 +46,13 @@ class Game {
   debug = new DebugOverlay($('debug'));
   input: Input;
   pending: Command[] = [];
+  /** Alle angewendeten Befehle mit Tick (Grundlage für Replays). */
+  replay: ReplayEntry[] = [];
   hoverNode = -1;
+  popup = new Popup($('popup'));
+  info = new InfoPanel($('info'));
+  toast = new Toast($('toast'));
+  tools: Tools;
   private mouseX = -1;
   private mouseY = -1;
   private lastFrame = performance.now();
@@ -54,6 +63,19 @@ class Game {
 
   constructor(private canvas: HTMLCanvasElement) {
     this.world = createWorld(readOptions());
+    this.tools = new Tools({
+      world: () => this.world,
+      player: 0,
+      enqueue: (c) => this.pending.push(c),
+      popup: this.popup,
+      info: this.info,
+      toast: this.toast,
+      setHint: (text) => {
+        $('help').textContent = text ?? t('hud.help');
+        $('help').classList.toggle('mode', !!text);
+      },
+      debugVisible: () => this.debug.visible,
+    });
     this.renderer = new Renderer(canvas, this.world);
     this.minimap = new Minimap($('minimap') as HTMLCanvasElement, this.world);
     this.input = new Input(canvas, {
@@ -67,7 +89,11 @@ class Game {
         this.mouseX = x;
         this.mouseY = y;
       },
-      onClick: () => {},
+      onClick: (x, y, button) => {
+        const dpr = window.devicePixelRatio || 1;
+        const n = this.pick(x, y);
+        this.tools.click(n, button, x / dpr, y / dpr);
+      },
       onKey: (code) => this.onKey(code),
     });
     this.setupMinimapInput();
@@ -87,6 +113,9 @@ class Game {
     url.searchParams.set('seed', opts.seed);
     history.replaceState(null, '', url);
     this.world = createWorld(opts);
+    this.pending = [];
+    this.replay = [];
+    this.tools.reset();
     this.renderer.setWorld(this.world);
     this.minimap.setWorld(this.world);
     this.resize();
@@ -120,7 +149,26 @@ class Game {
     clampCamera(this.cam, this.world.map);
   }
 
+  private pick(deviceX: number, deviceY: number): number {
+    return pickNode(
+      this.world.map,
+      this.cam.x + deviceX / this.cam.scale,
+      this.cam.y + deviceY / this.cam.scale,
+    );
+  }
+
+  private applyPending(): Command[] {
+    const cmds = this.pending;
+    this.pending = [];
+    for (const c of cmds) this.replay.push({ tick: this.world.tick, command: c });
+    return cmds;
+  }
+
   private onKey(code: string): void {
+    if (this.tools.key(code, this.hoverNode)) {
+      this.updateHud();
+      return;
+    }
     switch (code) {
       case 'Space':
         this.clock.paused = !this.clock.paused;
@@ -181,6 +229,10 @@ class Game {
       ? t('hud.paused')
       : t('hud.speed', { speed: this.clock.speed });
     $('hud-seed').textContent = t('hud.seed', { seed: this.world.seed });
+    const modes: string[] = [];
+    if (this.tools.buildHelp) modes.push(t('hud.buildHelp'));
+    if (this.tools.congestion) modes.push(t('hud.congestion'));
+    $('hud-modes').textContent = modes.join(' · ');
   }
 
   private frame(ts: number): void {
@@ -200,23 +252,30 @@ class Game {
     // Simulation
     const ticks = this.clock.advance(dt);
     const t0 = performance.now();
-    for (let i = 0; i < ticks; i++) {
-      step(this.world, this.pending);
-      this.pending = [];
+    for (let i = 0; i < ticks; i++) step(this.world, this.applyPending());
+    // In der Pause werden Befehle sofort angewendet (entspricht dem Beginn des nächsten Ticks).
+    if (ticks === 0 && this.pending.length > 0) {
+      for (const c of this.applyPending()) applyCommand(this.world, c);
     }
     if (ticks > 0) this.tickMs = (performance.now() - t0) / ticks;
 
     // Rendering
     const r0 = performance.now();
-    this.hoverNode =
-      this.mouseX >= 0
-        ? pickNode(
-            this.world.map,
-            this.cam.x + this.mouseX / this.cam.scale,
-            this.cam.y + this.mouseY / this.cam.scale,
-          )
-        : -1;
-    this.renderer.draw(this.cam, this.clock.alpha, { hoverNode: this.hoverNode });
+    const hover = this.mouseX >= 0 ? this.pick(this.mouseX, this.mouseY) : -1;
+    if (hover !== this.hoverNode || this.tools.roadPath) this.tools.hover(hover);
+    this.hoverNode = hover;
+    this.renderer.draw(this.cam, this.clock.alpha, {
+      hoverNode: this.hoverNode,
+      player: 0,
+      animMs: ts,
+      roadPreview: this.tools.preview(),
+      buildHelp: this.tools.buildHelp,
+      congestion: this.tools.congestion,
+      debug: this.debug.visible,
+      selectedWare: this.tools.selectedWare,
+      selectedNode: this.tools.selectedNode,
+    });
+    this.info.refresh();
     if (this.minimapVisible) this.minimap.draw(this.cam);
     this.frameMs = this.frameMs * 0.9 + (performance.now() - r0) * 0.1;
     this.debug.update(this.world, this.cam, {
@@ -225,9 +284,12 @@ class Game {
       tickMs: this.tickMs,
       render: this.renderer.stats,
       hoverNode: this.hoverNode,
+      selectedWare: this.tools.selectedWare,
     });
     requestAnimationFrame((n) => this.frame(n));
   }
 }
 
-new Game($('game') as HTMLCanvasElement);
+const game = new Game($('game') as HTMLCanvasElement);
+// Für Entwicklertests im Browser (nur im Dev-Server).
+if (import.meta.env.DEV) (window as unknown as { game: Game }).game = game;

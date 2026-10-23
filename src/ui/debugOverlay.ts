@@ -12,6 +12,7 @@ export interface DebugInfo {
   tickMs: number;
   render: RenderStats;
   hoverNode: number;
+  selectedWare: number;
 }
 
 /** Debug-Overlay (F3). */
@@ -36,7 +37,15 @@ export class DebugOverlay {
       `${t('debug.tickTime')}: ${info.tickMs.toFixed(2)} ms  ${t('debug.tick')}: ${world.tick}`,
       `${t('debug.chunks')}: ${info.render.chunksDrawn} / ${info.render.cachedChunks}  ${t('debug.objects')}: ${info.render.objectsDrawn}`,
       `${t('debug.camera')}: ${Math.round(cam.x)},${Math.round(cam.y)}  ${t('debug.zoom')}: ${cam.zoom} (${cam.width}×${cam.height} ×${cam.scale})`,
+      `${t('debug.flags')}: ${Object.keys(world.flags).length}  ${t('debug.roads')}: ${Object.keys(world.roads).length}  ${t('debug.settlers')}: ${Object.keys(world.settlers).length} (${info.render.settlersDrawn})  ${t('debug.wares')}: ${Object.keys(world.wares).length}`,
+      `${t('debug.routeQueue')}: ${world.routeQueue.length}`,
     ];
+    const w = info.selectedWare ? world.wares[info.selectedWare] : undefined;
+    if (w) {
+      lines.push(
+        `${t('debug.selectedWare')}: #${w.id} ${tDyn(`ware.${w.type}`)} → ${w.destFlag ? `F${w.destFlag}` : `B${w.dest}`}`,
+      );
+    }
     const i = info.hoverNode;
     const map = world.map;
     if (i >= 0) {

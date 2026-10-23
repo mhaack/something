@@ -3,7 +3,17 @@
  * Pixelpuffer gezeichnet und einmalig auf ein Canvas vorgerendert.
  */
 import { hash2 } from '../sim/rng';
+import { WARE_TYPES, type WareType } from '../data/wares';
 import { type RGB } from './palette';
+import {
+  makeBorderPost,
+  makeCarrier,
+  makeDonkey,
+  makeFlag,
+  makeHQ,
+  makeWare,
+  mirror,
+} from './spritesUnits';
 
 export interface Sprite {
   canvas: HTMLCanvasElement;
@@ -200,34 +210,43 @@ function makeRock(variant: number, size: number): Sprite {
   return b.toSprite(cx, baseY);
 }
 
-/** Startmarker (Platzhalter bis zum HQ in Phase 2): Fahnenmast in Spielerfarbe. */
-function makeStartFlag(color: RGB): Sprite {
-  const b = new PixelBuffer(16, 26);
-  b.rect(3, 2, 1, 22, [70, 50, 30]);
-  for (let y = 0; y < 7; y++) {
-    for (let x = 0; x < 9; x++) {
-      const wave = Math.round(Math.sin((x / 9) * Math.PI * 1.5));
-      b.set(4 + x, 3 + y + wave, x < 1 ? [0, 0, 0] : color);
-    }
-  }
-  b.outline(OUTLINE);
-  return b.toSprite(3, 24);
-}
-
 export interface SpriteSet {
   trees: Sprite[];
   rocks: Sprite[][];
-  startFlags: Sprite[];
+  /** [Spieler][Frame] */
+  flags: Sprite[][];
+  borderPosts: Sprite[];
+  hq: Sprite[];
+  /** [Spieler][Blick 0=rechts,1=links][Frame] */
+  carriers: Sprite[][][];
+  /** [Blick][Frame] */
+  donkeys: Sprite[][];
+  wares: Record<WareType, Sprite>;
 }
 
 export const ROCK_SIZES = 3;
+export const WALK_FRAMES = 4;
+export const FLAG_FRAMES = 4;
 
 export function buildSprites(playerColors: RGB[]): SpriteSet {
+  const frames = (f: (i: number) => Sprite, n: number): Sprite[] =>
+    Array.from({ length: n }, (_, i) => f(i));
+  const wares = {} as Record<WareType, Sprite>;
+  for (const t of WARE_TYPES) wares[t] = makeWare(t);
+  const donkeyR = frames(makeDonkey, WALK_FRAMES);
   return {
     trees: [makeLeafTree(0, 1), makeLeafTree(1, 0.85), makePineTree(0, 1), makePineTree(1, 0.85)],
     rocks: [0, 1].map((v) =>
       Array.from({ length: ROCK_SIZES }, (_, s) => makeRock(v, (s + 1) / ROCK_SIZES)),
     ),
-    startFlags: playerColors.map(makeStartFlag),
+    flags: playerColors.map((c) => frames((i) => makeFlag(c, i), FLAG_FRAMES)),
+    borderPosts: playerColors.map(makeBorderPost),
+    hq: playerColors.map(makeHQ),
+    carriers: playerColors.map((c) => {
+      const right = frames((i) => makeCarrier(c, i), WALK_FRAMES);
+      return [right, right.map(mirror)];
+    }),
+    donkeys: [donkeyR, donkeyR.map(mirror)],
+    wares,
   };
 }
