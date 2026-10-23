@@ -19,22 +19,23 @@ URL-Parameter (bis zum Hauptmenü in Phase 8): `?seed=42&size=128&players=2`
 
 ## Steuerung
 
+Unten liegt die Werkzeugleiste (Auswählen, Flagge, Straße, Abreißen, Bauhilfe, Stau-Anzeige,
+Minikarte, Hilfe, Debug), oben links die Temposteuerung. `F1` öffnet die vollständige
+Tastenübersicht im Spiel.
+
 | Aktion | Eingabe |
 | --- | --- |
-| Aktionen am Knoten | Linksklick (Kontextmenü: Flagge, Straße, Abriss, Info) |
-| Flagge setzen | `F` (über dem Knoten) |
-| Straße bauen | `R` über einer Flagge, dann Knoten anklicken; Klick auf Flagge oder zweimal auf das Ende beendet; Rücktaste: Schritt zurück; Rechtsklick/Esc: abbrechen |
-| Abreißen | `Entf` über Flagge oder Straße |
-| Testware zur Flagge schicken | `G` über einer Flagge |
-| Bauhilfe (mögliche Flaggenplätze) | `H` |
-| Stau-Anzeige | `V` |
-| Karte scrollen | Ziehen mit gedrückter Maustaste (rechts/links), Pfeiltasten oder WASD |
-| Zoom (3 Stufen) | Mausrad, Bild↑/Bild↓ |
+| Aktionen am Knoten | Linksklick (Kontextmenü) bzw. aktives Werkzeug anwenden |
+| Werkzeug wählen | `1` Auswählen · `2` Flagge · `3` Straße · `4` Abreißen |
+| Direkt unter dem Mauszeiger | `F` Flagge · `R` Straße ab Flagge · `Entf` Abriss · `G` Testware |
+| Straßenbau | Knoten anklicken verlängert; Klick auf Flagge oder zweimal aufs Ende beendet; Rechtsklick/Rücktaste: Schritt zurück; Esc: abbrechen |
+| Bauhilfe / Stau-Anzeige | `H` / `V` |
+| Karte scrollen | Ziehen, Pfeiltasten/WASD oder Maus an den Bildrand |
+| Zoom (4 Stufen) | Mausrad, Bild↑/Bild↓ |
 | Minikarte | Klicken/Ziehen springt zur Position, `M` blendet ein/aus |
-| Pause | Leertaste |
-| Tempo 1x/2x/4x/8x | `+` / `−` |
+| Pause / Tempo 1x–8x | Leertaste / `+` `−` |
+| Hilfe / Debug | `F1` / `F3` |
 | Neue Zufallskarte | `N` |
-| Debug-Overlay | `F3` |
 
 ## Architektur
 

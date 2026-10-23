@@ -103,13 +103,14 @@ STATUS.md und Commit.
   vereinfacht Rendering und Pfadsuche ohne spielerischen Nachteil.
 - A2: UI-Panels (Menüs, Infofenster, Minikarte) sind DOM-Elemente mit Pixel-Optik über dem Canvas;
   die Spielwelt wird im Canvas mit niedriger Basisauflösung gezeichnet und ganzzahlig skaliert.
-- A3: Zoom = ganzzahliger Skalierungsfaktor der Basisauflösung. Drei Stufen, Ziel-Basisbreite
-  ca. 640/480/320 Pixel.
+- A3: Zoom = ganzzahliger Skalierungsfaktor der Basisauflösung. Vier Stufen, Ziel-Basisbreite
+  ca. 960/640/480/320 Pixel (Standard 640).
 - A4: Kachelmaße in Basispixeln: `TW = 32`, `TH = 16`, 1 Höheneinheit = 1 Pixel. Höhen 0…48.
 - A5: Phase 1 hat noch kein Hauptmenü; Seed und Kartengröße per URL-Parameter
   (`?seed=123&size=128&players=2`), Taste `N` erzeugt eine neue Karte.
-- A6: Terrain-Übergänge sind harte Dreieckskanten mit Dithering-Schattierung (Gouraud über die
-  Knotenhelligkeit, quantisiert auf die Terrainpalette).
+- A6: Terrain-Übergänge werden an Dreieckskanten gedithert überblendet, Küsten bekommen einen
+  Sandstreifen und Schaum. Schattierung: Gouraud über die Knotenhelligkeit, quantisiert auf die
+  Terrainpalette.
 - A7: Kartenspeicherung als `number[]` statt Typed Arrays (JSON-Regel). Bei 256×256 sind das
   ~65k Einträge pro Array, unkritisch.
 - A8: Gebiet in Phase 2: Das HQ beansprucht einen festen Radius (`STORE.HQ_RADIUS`). Das echte
@@ -131,3 +132,8 @@ STATUS.md und Commit.
   Nahrungsketten. Einmal „stark befahren" bleibt eine Straße es.
 - A15: Testfunktion „Testware hierher schicken" (Taste G) existiert bis Phase 3, damit der
   Warentransport ohne Produktionsgebäude sichtbar ist.
+- A16: Zierelemente (Gras, Blumen, Steinchen, Büsche, Schilf) und Wasserreflexe sind reine
+  Darstellung, abgeleitet aus einem Knotenhash. Sie stehen nicht im Spielzustand und blockieren
+  nichts.
+- A17: Werkzeug-Modi (Auswählen, Flagge, Straße, Abreißen) über Leiste oder Tasten 1–4.
+  Rechtsklick nimmt im Straßenbau den letzten Abschnitt zurück, sonst verlässt er das Werkzeug.

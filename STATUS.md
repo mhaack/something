@@ -1,6 +1,20 @@
 # STATUS
 
-## Aktuelle Phase: 2 abgeschlossen
+## Aktuelle Phase: 2 abgeschlossen, Zwischenschritt Grafik/UX erledigt
+
+### Erledigt (Zwischenschritt Grafik und Bedienung)
+- Terrain: geditherte Übergänge zwischen Terraintypen, Sandstreifen und Schaum an Küsten,
+  Grashalme, Gesteinsschichten, Dünenrippel, Sumpftümpel; animierte Wasserreflexe.
+- Zierelemente (Gras, Blumen, Steinchen, Büsche, Pilze, Schilf, Wüstengras), rein optisch.
+- Sprites neu: Eiche, Birke, zwei Nadelbäume mit Windanimation; facettierte Felsen mit Moos;
+  Burg mit Rundtürmen, Bergfried, Toren, Fenstern, Bannern; Träger mit Hut, Gürtel, Laufzyklus,
+  mit/ohne Last; Esel mit Packsattel; wehende Flaggen; einzeln erkennbare Werkzeug-Waren;
+  Schlagschatten für alle Objekte und Figuren.
+- Standardzoom eine Stufe weiter (Basisbreite 640), vier Zoomstufen.
+- Bedienung: Werkzeugleiste mit Pixel-Icons und Tastenkürzeln, Werkzeug-Modi, Geisterflagge und
+  Hinweistext am Mauszeiger, Kontextmenü mit Kürzeln, Infofenster mit festem Kopf,
+  Schließen-Knopf, Warenraster mit Symbolen und Flaggenplätzen, Temposteuerung mit Knöpfen,
+  Pause-Anzeige, Hilfefenster (F1), Randscrollen, Mauszeiger je Werkzeug.
 
 ### Erledigt (Phase 2)
 - Hauptquartier mit Warenlager und Personen (Träger, Esel), Startbestand aus `balance.ts`,
@@ -37,10 +51,9 @@
 - Bedarfsgesteuerte Lieferungen (Anforderungen) statt Testwaren.
 
 ### Bekannte Punkte
-- Wasser ist noch nicht animiert (Phase 8).
 - Minikarte zeigt noch keine Straßen und Grenzen (Phase 6 mit Territorium).
 - Kein Hauptmenü, Seed/Größe/Spieler per URL (Annahme A5).
 - Siedler laufen auf Straßen durcheinander hindurch (kein Ausweichen), wie im Original.
 
 ### Annahmen
-Siehe PLAN.md, Abschnitt 5 (A1–A15).
+Siehe PLAN.md, Abschnitt 5 (A1–A17).
