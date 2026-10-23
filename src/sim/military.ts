@@ -90,13 +90,15 @@ function takeSoldier(world: World, store: Building): number {
   return equipSoldier(world, store);
 }
 
-function soldiersOnTheWay(world: World, b: Building): number {
-  let n = 0;
+/** Soldaten unterwegs je Zielgebäude (einmal pro Runde gezählt). */
+function soldiersOnTheWay(world: World): Map<number, number> {
+  const out = new Map<number, number>();
   for (const id in world.settlers) {
     const s = world.settlers[id];
-    if (s.job === 'soldier' && s.home === b.id && s.state === 'toBuilding') n++;
+    if (s.job === 'soldier' && s.state === 'toBuilding')
+      out.set(s.home, (out.get(s.home) ?? 0) + 1);
   }
-  return n;
+  return out;
 }
 
 /** Schickt Soldaten zu Militärgebäuden, die noch Platz haben (einer pro Gebäude und Runde). */
@@ -107,10 +109,17 @@ export function dispatchSoldiers(world: World): void {
     if (hq && hq.soldiers.length < p.reserve && canEquip(hq))
       hq.soldiers.push(equipSoldier(world, hq));
   }
+  const onTheWay = soldiersOnTheWay(world);
+  // Spieler, deren Lager überhaupt Soldaten stellen können (sonst keine Suche).
+  const supply = new Set<number>();
+  for (const id in world.buildings) {
+    const st = world.buildings[id];
+    if (isStore(st) && !st.site && canSupplySoldier(world, st)) supply.add(st.owner);
+  }
   for (const id of Object.keys(world.buildings)) {
     const b = world.buildings[Number(id)];
-    if (!b || b.site || !isMilitaryBuilding(b)) continue;
-    if (b.soldiers.length + soldiersOnTheWay(world, b) >= capacity(b)) continue;
+    if (!b || b.site || !isMilitaryBuilding(b) || !supply.has(b.owner)) continue;
+    if (b.soldiers.length + (onTheWay.get(b.id) ?? 0) >= capacity(b)) continue;
     const res = searchFlags(world, b.flag, b.owner, false, (f) => {
       const s = world.buildings[world.flags[f].building];
       return !!s && s.owner === b.owner && isStore(s) && canSupplySoldier(world, s);
@@ -388,7 +397,7 @@ function returnHome(world: World, s: Settler): void {
     b.owner === s.owner &&
     !b.site &&
     isMilitaryType(b.type) &&
-    (b.type === 'hq' || b.soldiers.length + soldiersOnTheWay(world, b) < capacity(b))
+    (b.type === 'hq' || b.soldiers.length + (soldiersOnTheWay(world).get(b.id) ?? 0) < capacity(b))
   ) {
     const path = freePath(world, s.node, b.node);
     if (path) {

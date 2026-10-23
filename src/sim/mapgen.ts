@@ -12,7 +12,14 @@ import {
   triangleNodes,
   trianglesAround,
 } from './geometry';
-import { createEmptyMap, isBuildableTerrain, isFlat, isMinableTerrain, type GameMap } from './map';
+import {
+  createEmptyMap,
+  invalidateTerrainCache,
+  isBuildableTerrain,
+  isFlat,
+  isMinableTerrain,
+  type GameMap,
+} from './map';
 import { fbm, valueNoise } from './noise';
 import { createRng, hashSeed, nextFloat, nextInt, type RngState } from './rng';
 
@@ -118,6 +125,7 @@ export function generateMap(opts: MapGenOptions): GeneratedMap {
   const starts = chooseStarts(map, opts.players, rng);
   for (const s of starts) prepareStart(map, s, rng);
   for (const s of starts) guaranteeOres(map, s);
+  invalidateTerrainCache(map);
 
   return { map, starts };
 }

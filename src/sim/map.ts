@@ -49,22 +49,52 @@ function countTriangles(
   return { match, total };
 }
 
+type TerrainClass = 'walkable' | 'buildable' | 'minable';
+const terrainCache = new WeakMap<GameMap, Partial<Record<TerrainClass, Uint8Array>>>();
+
+/**
+ * Terrainklassen pro Knoten, pro Karte zwischengespeichert (abgeleiteter Cache außerhalb des
+ * Weltzustands). Das Terrain ändert sich im Spiel nie; wer es trotzdem ändert (Kartengenerator,
+ * Tests), ruft danach `invalidateTerrainCache` auf.
+ */
+function terrainMask(map: GameMap, cls: TerrainClass): Uint8Array {
+  let entry = terrainCache.get(map);
+  if (!entry) terrainCache.set(map, (entry = {}));
+  let mask = entry[cls];
+  if (!mask) {
+    mask = new Uint8Array(map.width * map.height);
+    for (let k = 0; k < mask.length; k++) {
+      const { match, total } = countTriangles(map, k, cls);
+      const ok = cls === 'walkable' ? total === 6 && match > 0 : total === 6 && match === 6;
+      mask[k] = ok ? 1 : 0;
+    }
+    entry[cls] = mask;
+  }
+  return mask;
+}
+
+export function invalidateTerrainCache(map: GameMap): void {
+  terrainCache.delete(map);
+}
+
 /** Terrain erlaubt Betreten (mindestens ein begehbares angrenzendes Dreieck, nicht am Rand). */
 export function isWalkableTerrain(map: GameMap, i: number): boolean {
-  const { match, total } = countTriangles(map, i, 'walkable');
-  return total === 6 && match > 0;
+  return terrainMask(map, 'walkable')[i] === 1;
 }
 
 /** Alle 6 angrenzenden Dreiecke sind bebaubar. */
 export function isBuildableTerrain(map: GameMap, i: number): boolean {
-  const { match, total } = countTriangles(map, i, 'buildable');
-  return total === 6 && match === 6;
+  return terrainMask(map, 'buildable')[i] === 1;
 }
 
 /** Alle 6 angrenzenden Dreiecke sind Berg. */
 export function isMinableTerrain(map: GameMap, i: number): boolean {
-  const { match, total } = countTriangles(map, i, 'minable');
-  return total === 6 && match === 6;
+  return terrainMask(map, 'minable')[i] === 1;
+}
+
+/** Bergknoten der ganzen Karte als Maske (1 = Berg). */
+export function minableMask(map: GameMap): Uint8Array {
+  return terrainMask(map, 'minable');
 }
 
 /** Größter Höhenunterschied zu den direkten Nachbarn. */

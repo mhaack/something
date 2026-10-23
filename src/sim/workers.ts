@@ -104,7 +104,8 @@ function isPlantable(world: World, n: number): boolean {
 
 /** Weg von der Flagge zum Ziel; bei Hindernissen (Fels, Baum) endet er auf dem Nachbarknoten. */
 function pathTo(world: World, from: number, target: number, standBeside: boolean): number[] | null {
-  const p = freePath(world, from, target);
+  // Ziele liegen im Arbeitsradius: Ein kleines Suchbudget reicht, Unerreichbares kostet wenig.
+  const p = freePath(world, from, target, TRANSPORT.WORKER_PATH_EXPANSIONS);
   if (!p) return null;
   if (standBeside && p.length > 0) p.pop();
   return p;
@@ -384,7 +385,7 @@ function nextSurvey(world: World, s: Settler): void {
   for (let tries = 0; tries < 8 && spots.length > 0; tries++) {
     const k = nextInt(world.rng, 0, spots.length - 1);
     const target = spots[k];
-    const p = freePath(world, s.node, target);
+    const p = freePath(world, s.node, target, TRANSPORT.WORKER_PATH_EXPANSIONS);
     if (p) {
       s.state = 'geoWalk';
       s.targetNode = target;

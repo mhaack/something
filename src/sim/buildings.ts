@@ -341,17 +341,34 @@ export function requestWares(world: World): void {
       shared.get(key)!.push(r);
     }
   }
+  // Ohne verfügbaren Bestand in irgendeinem Lager lohnt keine Suche.
+  const avail = new Map<string, number>();
+  for (const id in world.buildings) {
+    const st = world.buildings[id];
+    if (!isStore(st) || st.site) continue;
+    for (const type of WARE_TYPES) {
+      const n = storeAvailable(st, type);
+      if (n > 0) avail.set(`${st.owner}:${type}`, (avail.get(`${st.owner}:${type}`) ?? 0) + n);
+    }
+  }
+  const has = (r: WareRequest): boolean => (avail.get(`${r.b.owner}:${r.type}`) ?? 0) > 0;
+  const take = (r: WareRequest): void => {
+    const key = `${r.b.owner}:${r.type}`;
+    avail.set(key, (avail.get(key) ?? 0) - 1);
+  };
   for (const r of plain) {
+    if (!has(r)) continue;
     const store = storeFor(world, r);
     while (store && r.missing > 0 && storeAvailable(store, r.type) > 0) {
       store.outQueue.push({ type: r.type, dest: r.b.id, destFlag: 0 });
       r.missing--;
+      take(r);
     }
   }
   for (const reqs of shared.values()) {
     const owner = reqs[0].b.owner;
     const g = contested(reqs[0].type, reqs[0].b.type)!;
-    let open = reqs;
+    let open = reqs.filter(has);
     while (open.length > 0) {
       // Höchstes Guthaben zuerst, bei Gleichstand das ältere Gebäude.
       let best = open[0];
@@ -366,7 +383,8 @@ export function requestWares(world: World): void {
       }
       store.outQueue.push({ type: best.type, dest: best.b.id, destFlag: 0 });
       chargeDelivery(world, owner, g, best.b.type, new Set(open.map((r) => r.b.type)));
-      if (--best.missing <= 0) open = open.filter((r) => r !== best);
+      take(best);
+      if (--best.missing <= 0 || !has(best)) open = open.filter((r) => r !== best && has(r));
     }
   }
 }

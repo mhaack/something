@@ -6,7 +6,7 @@ import type { BuildingType } from '../src/data/buildings';
 import type { WareType } from '../src/data/wares';
 import { planRoadSegment } from '../src/sim/roads';
 import { checkInvariants } from '../src/sim/invariants';
-import { createEmptyMap } from '../src/sim/map';
+import { createEmptyMap, invalidateTerrainCache } from '../src/sim/map';
 import { createWorldFromMap, step, type World } from '../src/sim/world';
 import { expect } from 'vitest';
 
@@ -88,6 +88,7 @@ export function paintTerrain(w: World, center: number, r: number, terrain: numbe
     w.map.terrain[2 * n] = terrain;
     w.map.terrain[2 * n + 1] = terrain;
   }
+  invalidateTerrainCache(w.map);
   return nodes;
 }
 

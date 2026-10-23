@@ -311,7 +311,12 @@ export function findNearestStoreAnywhere(
  * A* querfeldein über begehbare Knoten. Gebäudeknoten sind gesperrt (außer dem Ziel).
  * Liefert die Knotenfolge ohne Start oder null.
  */
-export function freePath(world: World, start: number, goal: number): number[] | null {
+export function freePath(
+  world: World,
+  start: number,
+  goal: number,
+  maxExpansions: number = TRANSPORT.FREE_WALK_MAX_EXPANSIONS,
+): number[] | null {
   if (start === goal) return [];
   const map = world.map;
   const gx = nodeX(map, goal);
@@ -324,7 +329,7 @@ export function freePath(world: World, start: number, goal: number): number[] | 
   const heap = new MinHeap();
   heap.push(h(start), start);
   let expansions = 0;
-  while (heap.size > 0 && expansions < TRANSPORT.FREE_WALK_MAX_EXPANSIONS) {
+  while (heap.size > 0 && expansions < maxExpansions) {
     const [, n] = heap.pop();
     if (closed.has(n)) continue;
     if (n === goal) {

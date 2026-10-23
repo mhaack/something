@@ -26,7 +26,7 @@ import type { Building, Fire, Flag, PlayerLedger, Road, Settler, Sign, Ware } fr
 import { recomputeTerritory } from './territory';
 import { defaultDistribution, zeroDistributionCredit, type Distribution } from './distribution';
 import { applyTerritoryChange, militaryTick } from './military';
-import type { GameMap } from './map';
+import { isBuildableTerrain, isMinableTerrain, isWalkableTerrain, type GameMap } from './map';
 import { generateMap } from './mapgen';
 import { createRng, type RngState } from './rng';
 import { processRouteQueue, scheduleReroutes } from './routing';
@@ -190,6 +190,10 @@ export function createWorldFromMap(
     outcome: null,
     events: [],
   };
+  // Terrain-Caches einmal vorab aufbauen (sonst zahlt der erste Spielzug dafür).
+  isWalkableTerrain(map, 0);
+  isBuildableTerrain(map, 0);
+  isMinableTerrain(map, 0);
   for (const p of world.players) createHQ(world, p, STOCK_FACTOR[fullSetup.stock]);
   recomputeTerritory(world);
   return world;

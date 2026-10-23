@@ -157,6 +157,8 @@ export const TRANSPORT = {
   ROAD_PLAN_MAX_EXPANSIONS: 3000,
   /** Höchstzahl Knotenexpansionen für Querfeldein-Wege (A*). */
   FREE_WALK_MAX_EXPANSIONS: 20000,
+  /** Suchbudget für Wege von Arbeitern zu Zielen in ihrem Arbeitsradius. */
+  WORKER_PATH_EXPANSIONS: 600,
 } as const;
 
 export const STORE = {

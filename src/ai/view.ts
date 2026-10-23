@@ -11,7 +11,7 @@ import { DIRS, Dir, neighbor } from '../sim/geometry';
 import { buildSize } from '../sim/buildings';
 import { isStore } from '../sim/store';
 import type { World } from '../sim/world';
-import { isMinableTerrain, type GameMap } from '../sim/map';
+import { minableMask, type GameMap } from '../sim/map';
 import type { AiMemory } from './memory';
 
 export interface Slot {
@@ -43,20 +43,9 @@ export interface View {
   slots: Slot[];
 }
 
-const minableCache = new WeakMap<GameMap, Uint8Array>();
-
-/**
- * Bergknoten der Karte (abgeleiteter Cache außerhalb des Weltzustands: das Gelände ändert sich
- * im Spiel nie, nur Höhen und Objekte).
- */
+/** Bergknoten der Karte (Maske aus dem Terrain-Cache der Simulation). */
 export function minable(map: GameMap): Uint8Array {
-  let m = minableCache.get(map);
-  if (!m) {
-    m = new Uint8Array(map.width * map.height);
-    for (let n = 0; n < m.length; n++) m[n] = isMinableTerrain(map, n) ? 1 : 0;
-    minableCache.set(map, m);
-  }
-  return m;
+  return minableMask(map);
 }
 
 /** Schritte von den nächsten Startknoten aus (Breitensuche über Nachbarn, -1 = unerreicht). */
