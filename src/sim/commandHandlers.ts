@@ -1,6 +1,7 @@
 import { WARE_TYPES } from '../data/wares';
 import { DISTRIBUTION, MILITARY, TOOLS } from '../data/balance';
 import { launchAttack } from './military';
+import { emit } from './events';
 import type { Command } from './commands';
 import { canPlaceFlag, placeFlag, removeFlag } from './flags';
 import { buildRoad, removeRoad, validateRoad } from './roads';
@@ -41,6 +42,11 @@ export function applyCommand(world: World, cmd: Command): boolean {
     case 'removeBuilding': {
       const b = world.buildings[cmd.building];
       if (!b || b.owner !== cmd.player) return false;
+      // Fertige Gebäude brennen beim Abriss nieder (nur Anzeige), Baustellen verschwinden.
+      if (!b.site && b.type !== 'hq') {
+        world.fires.push({ node: b.node, type: b.type, until: world.tick + MILITARY.FIRE_TICKS });
+        emit(world, 'burned', b.node, b.owner);
+      }
       return removeBuilding(world, cmd.building);
     }
     case 'sendGeologist':
