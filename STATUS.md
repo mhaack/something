@@ -1,6 +1,25 @@
 # STATUS
 
-## Aktuelle Phase: 6 abgeschlossen
+## Aktuelle Phase: 7 abgeschlossen
+
+### Erledigt (Phase 7)
+- Gegner-KI in drei Stufen (leicht, mittel, schwer), regelbasiert und deterministisch (A38, A39):
+  Bauordnung von Holz und Stein über Nahrung bis Metall und Waffen, Bauplatzbewertung (Bäume,
+  Felsen, Fisch, Feldfläche, Nähe zum Lager), kurze Anschlussstraßen, Ausdehnung zu neuem Land und
+  zu Bergen, Geologen und Bergwerke an gefundenen Vorkommen, Werkzeugprioritäten nach fehlenden
+  Berufen, Abriss erschöpfter Betriebe, Rückzug aus dem Hinterland, Angriffe bei ausreichender
+  Überlegenheit.
+- Sieg und Niederlage (A40), Zeitlimit, Startbedingungen (A41).
+- Spielmodi: freies Spiel (Kartengröße, 0–3 Gegner, Stärke, Startbedingungen, Seed) und sechs
+  Missionen (A42) im Dialog „Neues Spiel“ (`N`, Leistenknopf).
+- Zielanzeige oben links mit Fortschritt, Restzeit und Gegnern; Meldung bei besiegten Gegnern;
+  Fenster bei Sieg oder Niederlage (weiterspielen, nächste Mission, neues Spiel).
+- Tests (101): Ziele, Zeitlimit, Niederlage, Startbedingungen, Serialisierung; KI auf erzeugter
+  Karte (Grundwirtschaft, Ausdehnung, Baustellenlimit, Straßenanschluss), Determinismus,
+  Angriffsplanung, Eroberung, Werkzeuge, Anschluss verwaister Gebäude, Laufzeit auf 256×256.
+- Browser: 256×256, drei schwere Gegner, 8x-Tempo: 60 FPS, KI unter 0,1 ms pro Tick im Mittel.
+
+## Davor: Phase 6
 
 ### Erledigt (Phase 6)
 - Territorium mit deterministischer Konfliktregel (A33), Grenzen auf Karte und Minikarte.
@@ -124,16 +143,20 @@
 - Browser (Chromium headless, 1280×720, 256×256-Karte, 8x-Tempo, ~440 Siedler): 60 FPS,
   ca. 1,8 ms Renderzeit pro Frame.
 
-### Offen / nächste Schritte (Phase 7)
-- Gegner-KI in 3 Stufen, Spielmodi, Missionen, Sieg/Niederlage.
+### Offen / nächste Schritte (Phase 8)
+- Speichern/Laden, Hauptmenü, Sound, Performance, Balancing, Bugfixing.
 
 ### Bekannte Punkte
 - Vom Spieler abgerissene Gebäude verschwinden sofort; nur verlorene/zerstörte Gebäude brennen.
-- Noch kein Gegner, der von selbst handelt (Spieler 2 ist bis Phase 7 passiv).
+- Ohne Eisenerz in Reichweite kommt die KI militärisch kaum voran (Soldaten brauchen Waffen);
+  Balancing der Kette und der Kartenfairness bei Bergen in Phase 8.
+- Das KI-Straßennetz ist baumförmig (keine Querverbindungen), lange Wege können stauen.
+- Militärgebäude ziehen alle Soldaten aus dem HQ ab (gilt für alle Spieler); eine einstellbare
+  Reserve fehlt noch.
 - Fischbestände wachsen nicht nach.
 - Minikarte zeigt noch keine Straßen.
 - Kein Hauptmenü, Seed/Größe/Spieler per URL (Annahme A5).
 - Siedler laufen auf Straßen durcheinander hindurch (kein Ausweichen), wie im Original.
 
 ### Annahmen
-Siehe PLAN.md, Abschnitt 5 (A1–A37).
+Siehe PLAN.md, Abschnitt 5 (A1–A44).

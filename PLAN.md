@@ -192,3 +192,26 @@ STATUS.md und Commit.
   eigene Lager bzw. bleiben im Warenbuch. Brände sind reine Anzeige (`FIRE_TICKS`).
 - A37: Ein Angriff bleibt gültig, solange das Ziel existiert, feindlich und fertig gebaut ist,
   auch wenn gerade alle Verteidiger draußen kämpfen.
+- A38: Gegner-KI (`src/ai`) ist regelbasiert und zustandslos: Bei jeder Entscheidung wird das
+  Lagebild neu aus dem Weltzustand berechnet. Sie erzeugt nur normale Befehle, die wie
+  Spielereingaben im Replay landen; Replays laufen deshalb ohne KI. Denktakt je Stufe
+  (`AI.THINK_TICKS`), je Spieler versetzt.
+- A39: Die drei Stufen unterscheiden sich nur in den Werten aus `AI` in `balance.ts` (Denktakt,
+  Baustellen, Bauordnung, Angriffsschwelle, Werkzeugsteuerung). Keine Stufe bekommt Waren oder
+  Wissen geschenkt: Bodenschätze kennt die KI nur über Geologenschilder; Bäume, Felsen und
+  Fischgründe sind auf der Karte sichtbar.
+- A40: Besiegt ist, wer weder ein Lager noch ein Gebiet beanspruchendes Gebäude hat. Die Ziele
+  gelten für Spieler 0: freies Spiel = alle Gegner besiegen (ohne Gegner endlos), Missionen haben
+  eigene Ziele (Ware herstellen, Gebietsgröße, Eroberung) und optional ein Zeitlimit, dessen
+  Ablauf eine Niederlage ist. Nach Spielende kann weitergespielt werden.
+- A41: Startbedingungen wenig/normal/viel skalieren Startwaren und -personen mit 0,5/1/2. Der
+  Startbestand enthält jetzt je 4 Schwerter und Schilde, damit die erste Ausdehnung nicht allein an
+  den 10 Startsoldaten hängt.
+- A42: Missionen stehen in `src/data/missions.ts` mit festem Seed (immer dieselbe Karte). Alle
+  Missionen sind frei wählbar; welche geschafft sind, merkt sich nur der Browser (localStorage).
+- A43: Taste `N` und der Leistenknopf öffnen den Dialog „Neues Spiel“ (bisher: sofort neue
+  Zufallskarte). Das vollständige Hauptmenü folgt in Phase 8. URL-Parameter: `seed`, `size`,
+  `players`, `ai` (easy/normal/hard), `stock` (low/normal/high) oder `mission`.
+- A44: Die KI plant neue Militärgebäude nur mit freien Soldaten (abzüglich einer kleinen Reserve
+  je Stufe) und gibt Militärgebäude im Hinterland auf, deren Gebiet andere Gebäude abdecken,
+  damit Soldaten an die Grenze kommen.

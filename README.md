@@ -14,8 +14,9 @@ npm run lint     # ESLint + Prettier
 npm run build    # Produktions-Build nach dist/
 ```
 
-URL-Parameter (bis zum Hauptmenü in Phase 8): `?seed=42&size=128&players=2`
-(Größe 64/128/256, Spieler 1–4).
+Ein neues Spiel startet über den Dialog „Neues Spiel“ (`N`). Die Einstellungen stehen auch in der
+URL: `?seed=42&size=128&players=3&ai=hard&stock=low` (Größe 64/128/256, Spieler 1–4 inklusive dir,
+Gegnerstärke easy/normal/hard, Startbedingungen low/normal/high) oder `?mission=4`.
 
 ## Steuerung
 
@@ -37,6 +38,7 @@ Tastenübersicht im Spiel.
 | Minikarte | Klicken/Ziehen springt zur Position, `M` blendet ein/aus |
 | Pause / Tempo 1x–8x | Leertaste / `+` `−` |
 | Angriff | Klick auf ein feindliches Militärgebäude, Anzahl der Soldaten wählen, „Angreifen“ |
+| Neues Spiel (freies Spiel oder Mission) | `N` oder Leistenknopf |
 | Statistik (Waren, Verlauf, Siedler, Werkzeug-Prioritäten) | `T` |
 | Hilfe / Debug | `F1` / `F3` |
 | Neue Zufallskarte | `N` |
