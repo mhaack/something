@@ -24,7 +24,9 @@ export type IconName =
   | 'slower'
   | 'faster'
   | 'close'
-  | 'newGame';
+  | 'newGame'
+  | 'sound'
+  | 'mute';
 
 const INK: RGB = [24, 16, 8];
 const LIGHT: RGB = [242, 230, 200];
@@ -129,6 +131,21 @@ function draw(name: IconName, b: PixelBuffer): void {
         b.rect(11, y, 3, 1, LIGHT);
       }
       b.rect(8, 5, 1, 9, INK);
+      break;
+    case 'sound':
+    case 'mute':
+      // Lautsprecher, dazu Schallwellen bzw. ein Kreuz
+      b.rect(2, 6, 3, 4, LIGHT);
+      for (let k = 0; k < 4; k++) b.rect(5 + k, 5 - k, 1, 6 + 2 * k, LIGHT);
+      if (name === 'sound') {
+        b.rect(11, 6, 1, 4, LIGHT);
+        b.rect(13, 4, 1, 8, LIGHT);
+      } else {
+        for (let k = 0; k < 5; k++) {
+          b.set(10 + k, 5 + k, RED);
+          b.set(14 - k, 5 + k, RED);
+        }
+      }
       break;
     case 'pause':
       b.rect(4, 3, 3, 10, LIGHT);

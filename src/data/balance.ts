@@ -460,3 +460,19 @@ export const AI = {
   /** Bergwerke werden erst gebaut, wenn so viele Lebensmittel im Lager sind oder Nahrung entsteht. */
   MINE_MIN_FOOD: 4,
 } as const;
+
+/** Ton (keine Spielwerte, aber zentral einstellbar). */
+export const AUDIO = {
+  DEFAULT_SFX: 0.7,
+  DEFAULT_MUSIC: 0.5,
+  /** Grundpegel der Musik relativ zu den Geräuschen. */
+  MUSIC_LEVEL: 0.45,
+  MUSIC_BPM: 92,
+  /** Hörweite in halben Bildschirmbreiten um die Bildmitte. */
+  HEARING_RANGE: 1.6,
+  /** Mindestabstand zwischen zwei gleichen Geräuschen in ms. */
+  DEFAULT_GAP_MS: 40,
+  MIN_GAP_MS: { chop: 90, stone: 90, hit: 70, harvest: 150, built: 200, burned: 600 } as Partial<
+    Record<string, number>
+  >,
+} as const;

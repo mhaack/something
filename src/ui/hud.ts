@@ -16,6 +16,7 @@ export interface HudActions {
   slower(): void;
   faster(): void;
   newGame(): void;
+  toggleSound(): void;
 }
 
 export interface HudState {
@@ -26,6 +27,7 @@ export interface HudState {
   debug: boolean;
   stats: boolean;
   menu: boolean;
+  muted: boolean;
   paused: boolean;
   speed: number;
 }
@@ -56,6 +58,7 @@ export class Hud {
   private buttons: ToolButton[] = [];
   private speedLabel: HTMLElement;
   private pauseBtn: HTMLButtonElement;
+  private soundBtn: HTMLButtonElement;
   private tip: HTMLElement;
   private hint: HTMLElement;
   private help: HTMLElement;
@@ -109,7 +112,8 @@ export class Hud {
     this.pauseBtn = button('pause', 'tool.pause', '␣', () => actions.togglePause());
     const faster = button('faster', 'tool.faster', '+', () => actions.faster());
     this.speedLabel = el('span', { className: 'speed' });
-    timebar.append(slower, this.pauseBtn, faster, this.speedLabel);
+    this.soundBtn = button('sound', 'tool.sound', 'K', () => actions.toggleSound());
+    timebar.append(slower, this.pauseBtn, faster, this.speedLabel, this.soundBtn);
 
     this.hint = el('div', { className: 'panel hint' });
     this.hint.hidden = true;
@@ -194,5 +198,6 @@ export class Hud {
     this.pauseBtn.replaceChildren(icon(s.paused ? 'play' : 'pause'), el('kbd', { text: '␣' }));
     this.pauseBtn.classList.toggle('active', s.paused);
     this.pauseOverlay.hidden = !s.paused;
+    this.soundBtn.replaceChildren(icon(s.muted ? 'mute' : 'sound'), el('kbd', { text: 'K' }));
   }
 }

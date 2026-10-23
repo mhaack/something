@@ -196,7 +196,7 @@ const de = {
   'help.k.overlays': 'H: Bauhilfe (Bauplatzgrößen) · V: Stau-Anzeige · F3: Debug',
   'help.k.time': 'Leertaste: Pause · + / −: Tempo 1x–8x',
   'help.k.misc':
-    'J: Geologen zur Flagge · G: Testware zur Flagge · N: neues Spiel · F1: diese Hilfe',
+    'J: Geologen zur Flagge · G: Testware zur Flagge · N: neues Spiel · K: Ton an/aus · F1: diese Hilfe',
   'hud.congestion': 'Stau-Anzeige',
   'action.placeFlag': 'Flagge setzen',
   'action.buildRoad': 'Straße bauen',
@@ -309,6 +309,7 @@ const de = {
   'object.2': 'Felsen',
   'debug.object': 'Objekt',
   'tool.newGame': 'Neues Spiel',
+  'tool.sound': 'Ton an/aus',
   'menu.title': 'Neues Spiel',
   'menu.tab.free': 'Freies Spiel',
   'menu.tab.missions': 'Missionen',

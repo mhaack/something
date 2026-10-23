@@ -85,3 +85,18 @@ export function pickNode(map: GameMap, worldX: number, worldY: number): number {
   }
   return best;
 }
+
+/** Bildmitte und halbe Sichtbreite in Knoten (für den Ton). */
+export function cameraListener(cam: Camera): {
+  x: number;
+  y: number;
+  halfWidth: number;
+  aspect: number;
+} {
+  return {
+    x: (cam.x + cam.width / 2) / TW,
+    y: (cam.y + cam.height / 2) / TH,
+    halfWidth: cam.width / 2 / TW,
+    aspect: TH / TW,
+  };
+}

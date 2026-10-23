@@ -10,6 +10,7 @@ import {
 import { MISSIONS } from './data/missions';
 import { aiCommands, createAiState, type AiState } from './ai';
 import {
+  cameraListener,
   centerOnNode,
   clampCamera,
   createCamera,
@@ -41,6 +42,8 @@ import {
 } from './ui/gameMenu';
 import { GoalsPanel, OutcomeDialog, playerName } from './ui/goalsPanel';
 import { Input } from './ui/input';
+import { GameAudio, type SoundName } from './ui/audio';
+import type { SimEvent } from './sim/events';
 
 function $(id: string): HTMLElement {
   return document.getElementById(id)!;
@@ -93,6 +96,9 @@ class Game {
   pending: Command[] = [];
   /** Gedächtnis der Gegner-KI (außerhalb des Weltzustands, siehe src/ai/memory.ts). */
   ai: AiState = createAiState();
+  audio = new GameAudio();
+  /** Ereignisse aller Ticks dieses Frames (für den Ton). */
+  private frameEvents: SimEvent[] = [];
   /** Alle angewendeten Befehle mit Tick (Grundlage für Replays). */
   replay: ReplayEntry[] = [];
   hoverNode = -1;
@@ -134,11 +140,12 @@ class Game {
       slower: () => this.onKey('Minus'),
       faster: () => this.onKey('Equal'),
       newGame: () => this.onKey('KeyN'),
+      toggleSound: () => this.onKey('KeyK'),
     });
     this.tools = new Tools({
       world: () => this.world,
       player: 0,
-      enqueue: (c) => this.pending.push(c),
+      enqueue: (c) => this.enqueue(c),
       popup: this.popup,
       info: this.info,
       toast: this.toast,
@@ -185,6 +192,11 @@ class Game {
     this.resize();
     centerOnNode(this.cam, this.world.map, this.world.players[0].hqNode);
     this.updateHud();
+    this.toast.onShow = () => this.audio.play('warn');
+    // Browser erlauben Ton erst nach einer Nutzeraktion.
+    const unlock = (): void => this.audio.unlock();
+    window.addEventListener('pointerdown', unlock);
+    window.addEventListener('keydown', unlock);
     requestAnimationFrame((ts) => this.frame(ts));
   }
 
@@ -218,6 +230,7 @@ class Game {
     if (!o || this.outcomeShown) return;
     this.outcomeShown = true;
     this.clock.paused = true;
+    this.audio.play(o.result === 'won' ? 'won' : 'lost');
     const mission = this.world.setup.mission;
     if (o.result === 'won' && mission) markMissionDone(mission);
     const next = MISSIONS.find((m) => m.id === mission + 1);
@@ -271,6 +284,23 @@ class Game {
     this.pending = [];
     for (const c of cmds) this.replay.push({ tick: this.world.tick, command: c });
     return cmds;
+  }
+
+  /** Befehl des Spielers vormerken; jede Aktion bekommt ein kurzes Geräusch. */
+  private enqueue(c: Command): void {
+    this.pending.push(c);
+    const sound: Partial<Record<Command['type'], SoundName>> = {
+      placeBuilding: 'place',
+      buildRoad: 'road',
+      placeFlag: 'click',
+      removeBuilding: 'demolish',
+      removeFlag: 'demolish',
+      removeRoad: 'demolish',
+      sendGeologist: 'click',
+      setReserve: 'click',
+    };
+    const s = sound[c.type];
+    if (s) this.audio.play(s);
   }
 
   /** Spielerbefehle und KI-Befehle für den nächsten Tick (beide landen im Replay). */
@@ -334,6 +364,9 @@ class Game {
       case 'KeyN':
         this.menu.toggle(true);
         break;
+      case 'KeyK':
+        this.audio.setVolumes(this.audio.sfxVolume, this.audio.musicVolume, !this.audio.muted);
+        break;
       case 'PageUp':
         this.zoomAt(1, window.innerWidth / 2, window.innerHeight / 2);
         break;
@@ -374,6 +407,7 @@ class Game {
       debug: this.debug.visible,
       stats: this.stats?.visible ?? false,
       menu: this.menu?.visible ?? false,
+      muted: this.audio.muted,
       paused: this.clock.paused,
       speed: this.clock.speed,
     });
@@ -404,7 +438,14 @@ class Game {
     // Simulation
     const ticks = this.clock.advance(dt);
     const t0 = performance.now();
-    for (let i = 0; i < ticks; i++) step(this.world, this.tickCommands());
+    this.frameEvents.length = 0;
+    for (let i = 0; i < ticks; i++) {
+      step(this.world, this.tickCommands());
+      for (const e of this.world.events) this.frameEvents.push(e);
+    }
+    if (this.frameEvents.length) {
+      this.audio.events(this.frameEvents, this.world.map, 0, cameraListener(this.cam));
+    }
     // In der Pause werden Befehle sofort angewendet (entspricht dem Beginn des nächsten Ticks).
     if (ticks === 0 && this.pending.length > 0) {
       for (const c of this.applyPending()) applyCommand(this.world, c);
