@@ -58,6 +58,9 @@ const de = {
   'rank.4': 'Hauptmann',
   'panel.garrison': 'Besatzung: {n} / {max}',
   'panel.garrisonHQ': 'Soldaten im Hauptquartier: {n}',
+  'panel.reserve': 'Reserve: {n}',
+  'panel.reserveHint':
+    'So viele Soldaten bleiben zur Verteidigung im Hauptquartier und werden mit neuen Waffen zuerst aufgefüllt.',
   'panel.noSoldiers': 'Noch kein Soldat – das Gebiet wächst erst mit dem ersten Soldaten',
   'panel.promotion': 'Münzen befördern Soldaten',
   'panel.enemy': 'Feindlich: {name}',

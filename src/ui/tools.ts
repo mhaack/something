@@ -1,5 +1,5 @@
 /** Spielerwerkzeuge: Werkzeug-Modi, Kontextaktionen, Straßenbau, Auswahl. Erzeugt nur Befehle. */
-import { TRANSPORT } from '../data/balance';
+import { MILITARY, TRANSPORT } from '../data/balance';
 import { JOBS, WARE_TYPES } from '../data/wares';
 import type { Command } from '../sim/commands';
 import { canPlaceFlag } from '../sim/flags';
@@ -607,11 +607,37 @@ export class Tools {
       b.type === 'hq'
         ? t('panel.garrisonHQ', { n: b.soldiers.length })
         : t('panel.garrison', { n: b.soldiers.length, max: capacity(b) });
-    const rows = [el('div', { className: 'panel-sub', text: head }), ranks];
+    const rows: HTMLElement[] = [el('div', { className: 'panel-sub', text: head }), ranks];
+    if (b.type === 'hq' && b.owner === this.me) rows.push(this.reserveRow());
     if (b.type !== 'hq' && b.soldiers.length === 0) {
       rows.push(el('div', { className: 'warn', text: t('panel.noSoldiers') }));
     }
     return rows;
+  }
+
+  /** Reserve im Hauptquartier: −/+ ändern sie per Befehl. */
+  private reserveRow(): HTMLElement {
+    const value = this.world.players[this.me].reserve;
+    const set = (v: number): void => {
+      this.host.enqueue({ type: 'setReserve', player: this.me, value: v });
+      // Befehle werden erst im nächsten Tick angewendet; die Anzeige folgt beim Auffrischen.
+      window.setTimeout(() => this.host.info.refresh(true), 0);
+    };
+    const fewer = el('button', { className: 'chip', text: '−' });
+    fewer.title = t('action.fewer');
+    fewer.disabled = value <= 0;
+    fewer.addEventListener('click', () => set(value - 1));
+    const more = el('button', { className: 'chip', text: '+' });
+    more.title = t('action.more');
+    more.disabled = value >= MILITARY.MAX_RESERVE;
+    more.addEventListener('click', () => set(value + 1));
+    const row = el('div', { className: 'attack-row reserve-row' }, [
+      el('span', { text: t('panel.reserve', { n: value }) }),
+      fewer,
+      more,
+    ]);
+    row.title = t('panel.reserveHint');
+    return row;
   }
 
   /** Feindliches Gebäude: Besatzung und Angriff planen. */

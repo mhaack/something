@@ -917,3 +917,11 @@ canvas.chart {
 .outcome-box .menu-actions {
   justify-content: center;
 }
+
+.reserve-row {
+  align-items: center;
+}
+
+.reserve-row span {
+  flex: 1;
+}
