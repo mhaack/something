@@ -7,11 +7,10 @@ import { BUILDINGS, sizeFits, type BuildingType } from '../data/buildings';
 import { MapObject, Resource } from '../data/terrain';
 import { footprint } from '../sim/buildings';
 import { gridDistance, nodeX, nodeY, nodesInRadius } from '../sim/geometry';
-import { isMinableTerrain } from '../sim/map';
 import { isTreeSpot } from '../sim/mapgen';
 import { planRoadSegment, validateRoad } from '../sim/roads';
 import { searchFlags } from '../sim/routing';
-import type { Slot, View } from './view';
+import { bfs, minable, type Slot, type View } from './view';
 
 export interface Placement {
   node: number;
@@ -177,7 +176,7 @@ function roadTo(view: View, flagNode: number, avoid: readonly number[]): number[
     // Vom Netz zur neuen Flagge planen; existiert die Flagge schon, von ihr aus ins Netz.
     const from = existing ? flagNode : t;
     const to = existing ? t : flagNode;
-    const seg = planRoadSegment(w, view.player, [from], to);
+    const seg = planRoadSegment(w, view.player, [from], to, AI.ROAD_PLAN_EXPANSIONS);
     if (!seg || seg.length > AI.ROAD_MAX_LEN) continue;
     if (seg.some((n) => avoid.includes(n) && n !== to)) continue;
     const path = [from, ...seg];
@@ -215,9 +214,14 @@ function tryPlacements(view: View, type: BuildingType, scored: [number, Slot][])
 }
 
 /** Liegt fremdes Gebiet in der Nähe? */
-function enemyNear(view: View, node: number, r: number): boolean {
+/** Schritte zum nächsten fremden Gebiet (einmal pro Entscheidung statt je Bauplatz). */
+function distanceToEnemies(view: View): Int32Array {
   const w = view.world;
-  return nodesInRadius(w.map, node, r).some((n) => w.owner[n] >= 0 && w.owner[n] !== view.player);
+  const enemy: number[] = [];
+  for (let n = 0; n < w.owner.length; n++) {
+    if (w.owner[n] >= 0 && w.owner[n] !== view.player) enemy.push(n);
+  }
+  return bfs(w, enemy, () => true, BUILDING_VALUES.watchtower.radius + AI.FRONT_MARGIN);
 }
 
 /** Militärgebäude an der Grenze, das möglichst viel neues Land (und Rohstoffe) bringt. */
@@ -227,7 +231,9 @@ export function findMilitaryPlacement(
 ): { type: BuildingType; place: Placement } | null {
   const w = view.world;
   const map = w.map;
+  const rock = minable(map);
   const mountainDist = towardsMountains ? distanceToFreeMountains(view) : null;
+  const enemyDist = AI.STRONG_FRONT[view.level] ? distanceToEnemies(view) : null;
   // Bekannte Erzfunde jenseits der Grenze ziehen die Ausdehnung an.
   const ore = new Set(
     view.memory.deposits
@@ -241,7 +247,8 @@ export function findMilitaryPlacement(
     const fd = view.flagDist[slot.flagNode];
     if (fd < 0 || fd > AI.ROAD_MAX_LEN) continue;
     if (slot.size === 'mine') continue;
-    const type = militaryType(view, slot);
+    const ed = enemyDist ? enemyDist[slot.node] : -1;
+    const type = militaryType(view, slot, ed >= 0);
     const r = BUILDING_VALUES[type].radius;
     let gain = 0;
     for (const n of nodesInRadius(map, slot.node, r)) {
@@ -249,7 +256,7 @@ export function findMilitaryPlacement(
       gain += 1;
       if (map.objects[n] === MapObject.Tree) gain += 0.3;
       else if (map.objects[n] === MapObject.Rock) gain += 1;
-      if (isMinableTerrain(map, n)) gain += mountainDist ? AI.MOUNTAIN_BONUS : 0.5;
+      if (rock[n]) gain += mountainDist ? AI.MOUNTAIN_BONUS : 0.5;
       if (map.resources[n] === Resource.Fish) gain += 0.3;
       if (ore.has(n)) gain += AI.DEPOSIT_BONUS;
     }
@@ -260,45 +267,32 @@ export function findMilitaryPlacement(
     if (!best.has(type)) best.set(type, []);
     best.get(type)!.push([s, slot]);
   }
-  // Der Typ mit dem besten Platz gewinnt.
-  let pick: { type: BuildingType; place: Placement; s: number } | null = null;
-  for (const [type, list] of best) {
+  // Der Typ mit dem besten Platz zuerst; der erste mit gültiger Anschlussstraße gewinnt.
+  const order = [...best].map(([type, list]) => {
     list.sort((a, b) => b[0] - a[0] || a[1].node - b[1].node);
-    if (pick && list[0][0] <= pick.s) continue;
+    return { type, list };
+  });
+  order.sort((a, b) => b.list[0][0] - a.list[0][0] || a.list[0][1].node - b.list[0][1].node);
+  for (const { type, list } of order) {
     const place = tryPlacements(view, type, list);
-    if (place) pick = { type, place, s: list[0][0] };
+    if (place) return { type, place };
   }
-  return pick ? { type: pick.type, place: pick.place } : null;
+  return null;
 }
 
 /** Schritte zum nächsten Bergknoten, der noch niemandem gehört (über die ganze Karte). */
 function distanceToFreeMountains(view: View): Int32Array {
   const w = view.world;
-  const map = w.map;
-  const dist = new Int32Array(map.width * map.height).fill(-1);
-  const queue: number[] = [];
-  for (let n = 0; n < dist.length; n++) {
-    if (w.owner[n] === -1 && isMinableTerrain(map, n)) {
-      dist[n] = 0;
-      queue.push(n);
-    }
+  const rock = minable(w.map);
+  const free: number[] = [];
+  for (let n = 0; n < w.owner.length; n++) {
+    if (w.owner[n] === -1 && rock[n]) free.push(n);
   }
-  for (let q = 0; q < queue.length; q++) {
-    for (const m of nodesInRadius(map, queue[q], 1)) {
-      if (dist[m] < 0) {
-        dist[m] = dist[queue[q]] + 1;
-        queue.push(m);
-      }
-    }
-  }
-  return dist;
+  return bfs(w, free, () => true, AI.MOUNTAIN_SEARCH);
 }
 
-function militaryType(view: View, slot: Slot): BuildingType {
+function militaryType(view: View, slot: Slot, front: boolean): BuildingType {
   const stone = view.stock.stone;
-  const front =
-    AI.STRONG_FRONT[view.level] &&
-    enemyNear(view, slot.node, BUILDING_VALUES.watchtower.radius + 4);
   if (
     front &&
     view.level === 'hard' &&
@@ -338,7 +332,7 @@ export function findShortcut(view: View): number[] | null {
       const viaNet = net.get(g) ?? Infinity;
       const gain = viaNet - AI.SHORTCUT_DETOUR * direct;
       if (gain <= 0 || (best && gain <= best.gain)) continue;
-      const seg = planRoadSegment(w, view.player, [from.node], to.node);
+      const seg = planRoadSegment(w, view.player, [from.node], to.node, AI.ROAD_PLAN_EXPANSIONS);
       if (!seg || seg.length > d + AI.SHORTCUT_SLACK) continue;
       const path = [from.node, ...seg];
       if (validateRoad(w, view.player, path) !== 'ok') continue;
@@ -353,7 +347,8 @@ export function findShortcut(view: View): number[] | null {
 export function surveyValue(view: View, node: number): number {
   const map = view.world.map;
   let v = 0;
-  for (const n of nodesInRadius(map, node, GEOLOGIST.RADIUS)) if (isMinableTerrain(map, n)) v++;
+  const rock = minable(map);
+  for (const n of nodesInRadius(map, node, GEOLOGIST.RADIUS)) if (rock[n]) v++;
   for (const s of view.memory.surveyed)
     if (dist(view, node, s) <= GEOLOGIST.RADIUS) v -= AI.SURVEY_PENALTY;
   return v;
@@ -362,9 +357,10 @@ export function surveyValue(view: View, node: number): number {
 export function findMountainFlag(view: View, free: (n: number) => boolean): number[] | null {
   const w = view.world;
   const map = w.map;
+  const rock = minable(map);
   const cands: [number, number][] = [];
   for (let n = 0; n < map.width * map.height; n++) {
-    if (w.owner[n] !== view.player || !isMinableTerrain(map, n)) continue;
+    if (w.owner[n] !== view.player || !rock[n]) continue;
     const fd = view.flagDist[n];
     if (fd < 2 || fd > AI.ROAD_MAX_LEN) continue;
     // Nicht dorthin, wo schon gesucht wird oder wurde.

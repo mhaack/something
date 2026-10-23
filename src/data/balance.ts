@@ -437,13 +437,17 @@ export const AI = {
   PLACE_TRIES: 4,
   /** Anschlussflaggen, die je Bauplatz probiert werden. */
   ROAD_TARGETS: 3,
-  /** Höchstlänge einer neuen Straße in Knoten. */
+  /** Höchstlänge einer neuen Straße in Knoten und Suchbudget der Straßenplanung dafür. */
   ROAD_MAX_LEN: 14,
+  ROAD_PLAN_EXPANSIONS: 500,
   /** Militärbauplätze höchstens so weit von der Grenze. */
   BORDER_DIST: 3,
   /** Fehlen Berge: Wert eines Bergknotens im neuen Gebiet und Abzug je Schritt Abstand zum Berg. */
   MOUNTAIN_BONUS: 3,
   MOUNTAIN_PULL: 1.5,
+  /** Suchweite zu freien Bergen; Abstand zu fremdem Gebiet, ab dem eine Grenze als Front gilt. */
+  MOUNTAIN_SEARCH: 40,
+  FRONT_MARGIN: 4,
   /** Wert eines bekannten Kohle- oder Eisenfunds im neu gewonnenen Gebiet. */
   DEPOSIT_BONUS: 6,
   /** Holzfäller brauchen mindestens so viele Bäume im Radius, Steinbrüche so viele Felsen. */

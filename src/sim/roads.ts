@@ -342,6 +342,7 @@ export function planRoadSegment(
   player: number,
   path: readonly number[],
   target: number,
+  maxExpansions: number = TRANSPORT.ROAD_PLAN_MAX_EXPANSIONS,
 ): number[] | null {
   const start = path[path.length - 1];
   if (target === start || path.includes(target)) return null;
@@ -363,7 +364,7 @@ export function planRoadSegment(
   const heap = new MinHeap();
   heap.push(h(start), start);
   let expansions = 0;
-  while (heap.size > 0 && expansions < TRANSPORT.ROAD_PLAN_MAX_EXPANSIONS) {
+  while (heap.size > 0 && expansions < maxExpansions) {
     const [, n] = heap.pop();
     if (closed.has(n)) continue;
     if (n === target) {

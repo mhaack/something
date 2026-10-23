@@ -12,7 +12,6 @@ import type { Command } from '../sim/commands';
 import type { Building } from '../sim/entities';
 import { attackSources, isAttackable, reserveOf, spareSoldiers } from '../sim/military';
 import { neededJob } from '../sim/buildings';
-import { isMinableTerrain } from '../sim/map';
 import type { World } from '../sim/world';
 import {
   connectFlag,
@@ -26,7 +25,7 @@ import {
   surveyed,
   treesAround,
 } from './placement';
-import { buildView, type View } from './view';
+import { buildView, minable, type View } from './view';
 import { remember, type AiMemory } from './memory';
 
 interface Step {
@@ -222,7 +221,7 @@ function removeDeadEnd(view: View, cmds: Command[]): void {
     if (flag.building || flag.wares.length || targets.has(f)) continue;
     if (flag.roads.filter((r) => r > 0).length !== 1) continue;
     // Gerade erst gebaut (Geologe noch nicht losgeschickt)? Nur abreißen, wenn schon gesucht wurde.
-    if (isMinableTerrain(w.map, flag.node) && !surveyed(view, flag.node)) continue;
+    if (minable(w.map)[flag.node] && !surveyed(view, flag.node)) continue;
     cmds.push({ type: 'removeFlag', player: view.player, flag: f });
     return;
   }
@@ -422,8 +421,9 @@ function needsMountains(view: View): boolean {
   );
   if (!wantsMine) return false;
   const ore = needsOre(view);
+  const rock = minable(w.map);
   for (let n = 0; n < w.owner.length; n++) {
-    if (w.owner[n] !== view.player || !isMinableTerrain(w.map, n)) continue;
+    if (w.owner[n] !== view.player || !rock[n]) continue;
     if (!ore || surveyValue(view, n) >= AI.SURVEY_MIN_VALUE) return false;
   }
   return true;
@@ -467,7 +467,7 @@ function sendGeologist(view: View, cmds: Command[]): void {
   let bestV = -Infinity;
   for (const f of view.reachable) {
     const flag = w.flags[f];
-    if (flag.building || !isMinableTerrain(w.map, flag.node) || !free(flag.node)) continue;
+    if (flag.building || !minable(w.map)[flag.node] || !free(flag.node)) continue;
     const v = surveyValue(view, flag.node);
     if (v > bestV || (v === bestV && f < best)) {
       bestV = v;

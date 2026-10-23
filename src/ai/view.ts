@@ -11,6 +11,7 @@ import { DIRS, Dir, neighbor } from '../sim/geometry';
 import { buildSize } from '../sim/buildings';
 import { isStore } from '../sim/store';
 import type { World } from '../sim/world';
+import { isMinableTerrain, type GameMap } from '../sim/map';
 import type { AiMemory } from './memory';
 
 export interface Slot {
@@ -42,22 +43,47 @@ export interface View {
   slots: Slot[];
 }
 
-function bfs(world: World, starts: number[], allowed: (n: number) => boolean): Int32Array {
-  const dist = new Int32Array(world.map.width * world.map.height).fill(-1);
-  const queue: number[] = [];
+const minableCache = new WeakMap<GameMap, Uint8Array>();
+
+/**
+ * Bergknoten der Karte (abgeleiteter Cache außerhalb des Weltzustands: das Gelände ändert sich
+ * im Spiel nie, nur Höhen und Objekte).
+ */
+export function minable(map: GameMap): Uint8Array {
+  let m = minableCache.get(map);
+  if (!m) {
+    m = new Uint8Array(map.width * map.height);
+    for (let n = 0; n < m.length; n++) m[n] = isMinableTerrain(map, n) ? 1 : 0;
+    minableCache.set(map, m);
+  }
+  return m;
+}
+
+/** Schritte von den nächsten Startknoten aus (Breitensuche über Nachbarn, -1 = unerreicht). */
+export function bfs(
+  world: World,
+  starts: readonly number[],
+  allowed: (n: number) => boolean,
+  maxDist = Infinity,
+): Int32Array {
+  const map = world.map;
+  const dist = new Int32Array(map.width * map.height).fill(-1);
+  const queue = new Int32Array(dist.length);
+  let tail = 0;
   for (const s of starts) {
     if (dist[s] < 0) {
       dist[s] = 0;
-      queue.push(s);
+      queue[tail++] = s;
     }
   }
-  for (let q = 0; q < queue.length; q++) {
-    const c = queue[q];
+  for (let head = 0; head < tail; head++) {
+    const c = queue[head];
+    if (dist[c] >= maxDist) continue;
     for (const d of DIRS) {
-      const m = neighbor(world.map, c, d);
+      const m = neighbor(map, c, d);
       if (m >= 0 && dist[m] < 0 && allowed(m)) {
         dist[m] = dist[c] + 1;
-        queue.push(m);
+        queue[tail++] = m;
       }
     }
   }
