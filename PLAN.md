@@ -112,3 +112,22 @@ STATUS.md und Commit.
   Knotenhelligkeit, quantisiert auf die Terrainpalette).
 - A7: Kartenspeicherung als `number[]` statt Typed Arrays (JSON-Regel). Bei 256×256 sind das
   ~65k Einträge pro Array, unkritisch.
+- A8: Gebiet in Phase 2: Das HQ beansprucht einen festen Radius (`STORE.HQ_RADIUS`). Das echte
+  Territoriumssystem mit Militärgebäuden folgt in Phase 6.
+- A9: Wird eine Flagge mit Waren abgerissen, wandern diese Waren sofort ins nächste Lager des
+  Besitzers (statt verloren zu gehen). Gibt es kein Lager, werden sie im Warenbuch als zerstört
+  verbucht.
+- A10: Heimkehrende Siedler laufen querfeldein (A*). Ist kein Weg zum Lager möglich, werden sie
+  direkt eingelagert, damit nie jemand dauerhaft hängen bleibt.
+- A11: Träger holen eine Ware nur ab, wenn die Zielflagge Platz hat (inklusive angekündigter
+  Lieferungen) oder dort eine Ware in Gegenrichtung zum Tausch wartet. Waren, die länger als
+  `OVERFLOW_WAIT_TICKS` warten, dürfen einen kleinen Überlauf (`FLAG_OVERFLOW`) nutzen. Damit
+  rotieren auch komplett volle Zyklen weiter (keine Deadlocks).
+- A12: Waren für das Gebäude an der Zielflagge trägt der Träger direkt hinein, sie belegen keinen
+  Flaggenplatz.
+- A13: Routing pro Ware nur an Flaggen (nächste Straße), periodisch und nach Netzänderungen neu.
+  Pro Abarbeitungsrunde wird je Ziel ein rückwärts berechnetes Distanzfeld geteilt.
+- A14: Esel kommen in Phase 2 aus dem HQ-Startbestand; eine Eselzucht folgt mit den
+  Nahrungsketten. Einmal „stark befahren" bleibt eine Straße es.
+- A15: Testfunktion „Testware hierher schicken" (Taste G) existiert bis Phase 3, damit der
+  Warentransport ohne Produktionsgebäude sichtbar ist.

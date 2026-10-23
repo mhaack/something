@@ -21,6 +21,13 @@ URL-Parameter (bis zum Hauptmenü in Phase 8): `?seed=42&size=128&players=2`
 
 | Aktion | Eingabe |
 | --- | --- |
+| Aktionen am Knoten | Linksklick (Kontextmenü: Flagge, Straße, Abriss, Info) |
+| Flagge setzen | `F` (über dem Knoten) |
+| Straße bauen | `R` über einer Flagge, dann Knoten anklicken; Klick auf Flagge oder zweimal auf das Ende beendet; Rücktaste: Schritt zurück; Rechtsklick/Esc: abbrechen |
+| Abreißen | `Entf` über Flagge oder Straße |
+| Testware zur Flagge schicken | `G` über einer Flagge |
+| Bauhilfe (mögliche Flaggenplätze) | `H` |
+| Stau-Anzeige | `V` |
 | Karte scrollen | Ziehen mit gedrückter Maustaste (rechts/links), Pfeiltasten oder WASD |
 | Zoom (3 Stufen) | Mausrad, Bild↑/Bild↓ |
 | Minikarte | Klicken/Ziehen springt zur Position, `M` blendet ein/aus |

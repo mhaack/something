@@ -1,40 +1,46 @@
 # STATUS
 
-## Aktuelle Phase: 1 abgeschlossen
+## Aktuelle Phase: 2 abgeschlossen
 
-### Erledigt (Phase 1)
-- Projekt-Setup: TypeScript strict, Vite, Vitest, ESLint (mit Sperren für `Math.random`,
-  `Date.now` und render/ui-Importe in `src/sim`), Prettier.
-- Seedbarer RNG (sfc32, Zustand im Weltzustand), ganzzahlig gehashtes Value-Noise/fBm.
-- Versetztes Dreiecksgitter mit 6 Nachbarn, 2 Dreiecke pro Knoten, Distanzen, Radien.
-- Kartengenerierung per Seed: Höhen mit Randabfall, Wasser, Sumpf, Wiesen (3 Varianten), Wüste,
-  Berge, Hochgebirge; Wälder und Einzelbäume, Felscluster, unsichtbare Bodenschätze (Kohle, Eisen,
-  Gold, Granit) in Bergen; Kartengrößen 64/128/256.
-- Startpositionen für 1–4 Spieler mit maximalem Abstand, freigeräumtem und geebnetem HQ-Bereich und
-  Fairness-Ausgleich (Mindestzahl Bäume/Felsen im Umkreis).
-- Weltzustand JSON-serialisierbar, Befehlsschnittstelle (noch ohne echte Befehle).
-- Terrain-Rendering: eigener Rasterizer, Gouraud-Licht aus Höhen, Dithering, prozedurale Texturen,
-  Chunk-Cache mit LRU und Rasterbudget pro Frame.
-- Prozedurale Sprites: Laub-/Nadelbäume, Felsen in 3 Größen, Startfahnen in Spielerfarbe.
-- Kamera: Scrollen (Ziehen, Pfeiltasten/WASD), 3 Zoomstufen (ganzzahlige Skalierung), Knoten-Picking
-  mit Höhen, Minikarte mit Sprung per Klick.
-- Spielschleife mit fester Tickrate (20/s), Tempo 1x–8x, Pause, Interpolationsanteil.
-- Debug-Overlay (F3): FPS, Frame-/Tick-Zeit, Chunks, Objekte, Kamera, Knoteninfos.
-- Tests: RNG, Geometrie, Kartengenerierung (Determinismus, Fairness, Größen), Serialisierung, Uhr,
-  Picking, Rasterlücken (26 Tests).
+### Erledigt (Phase 2)
+- Hauptquartier mit Warenlager und Personen (Träger, Esel), Startbestand aus `balance.ts`,
+  Gebiet im festen Radius, Trägernachschub über die Zeit.
+- Flaggen: Platzierungsregeln (eigenes Gebiet, Terrain, frei, Mindestabstand 2), Abriss;
+  Setzen auf einer Straße teilt sie (Träger bleiben auf ihrer Hälfte).
+- Straßen: Pfadvalidierung (Nachbarschaft, max. Steigung, keine Kreuzungen, Richtungsslots),
+  automatische Zwischenflaggen, Laufzeit abhängig von der Steigung, Abriss ohne Warenverlust.
+- Träger: Zustandsautomat (anreisen, Mitte, abholen, tragen, ablegen, ins Gebäude tragen, heim),
+  eine Ware gleichzeitig, Rücktransport in Gegenrichtung, Tausch an vollen Flaggen.
+- Routing: Flaggen-Graph, Kantenkosten = Laufzeit + Stau-Zuschlag, gedeckelte Routen pro Tick,
+  Neuberechnung periodisch und nach Netzänderungen, geteilte Distanzfelder pro Ziel.
+- Staffelprinzip mit sichtbaren Staus, Notfall-Überlauf gegen Zyklus-Deadlocks.
+- Esel: stark befahrene Straßen (Schwelle in `balance.ts`) werden gepflastert dargestellt und
+  bekommen einen Esel als zweiten Träger.
+- Warenbuch pro Spieler und Invariantenprüfung (`src/sim/invariants.ts`).
+- Darstellung: HQ-Burg, wehende Flaggen, Grenzpfähle, Straßen (Erde/Pflaster), Träger und Esel
+  mit Laufanimation und Interpolation, Waren auf Flaggen und in Trägerhänden.
+- UI: Kontextmenü per Linksklick, Straßenbau-Modus mit Vorschau und Steigungsfarben,
+  Infofenster (HQ-Bestand, Flaggenwaren, Straßenstatus), Meldungen, Bauhilfe (H),
+  Stau-Overlay (V), Debug-Overlay mit Flaggen-IDs und Route der markierten Ware.
+- Tests (43): Flaggen-/Straßenregeln, Teilen, Trägeranreise, Warenfluss hin und zurück, Stau,
+  volle Zyklen ohne Deadlock, Routing mit Stau-Kosten, Straßen- und Flaggenabriss ohne
+  Warenverlust, Esel, Replay-Determinismus, Speichern/Laden mitten im Spiel, Performance.
 
 ### Gemessen
-- 256×256-Karte, 4 Spieler, Chromium headless 1280×720: 60 FPS, ~0,3–0,7 ms Renderzeit pro Frame.
+- Simulation: 760 Träger, 1200 Waren auf einem Straßengitter: ca. 0,5 ms pro Tick (Vitest, Node).
+- Browser (Chromium headless, 1280×720, 256×256-Karte, 8x-Tempo, ~440 Siedler): 60 FPS,
+  ca. 1,8 ms Renderzeit pro Frame.
 
-### Offen / nächste Schritte (Phase 2)
-- Flaggen, Straßen, HQ als Lager, Träger, Warentransport, Routing mit Stau-Kosten, Esel.
-- Replay-Test (Determinismus mit Befehlen), Invarianten-Test für Waren.
+### Offen / nächste Schritte (Phase 3)
+- Baustellen, Bauarbeiter, Planierer, Bauplatzgrößen.
+- Holzfäller, Förster, Sägewerk, Steinbruch; erster Kreislauf Holz/Stein → Gebäude.
+- Bedarfsgesteuerte Lieferungen (Anforderungen) statt Testwaren.
 
 ### Bekannte Punkte
-- Wasser ist noch nicht animiert (geplant für Phase 8, Politur).
-- Terrainübergänge sind harte Dreieckskanten (Annahme A6).
-- Startfahne ist Platzhalter für das HQ (kommt in Phase 2).
+- Wasser ist noch nicht animiert (Phase 8).
+- Minikarte zeigt noch keine Straßen und Grenzen (Phase 6 mit Territorium).
 - Kein Hauptmenü, Seed/Größe/Spieler per URL (Annahme A5).
+- Siedler laufen auf Straßen durcheinander hindurch (kein Ausweichen), wie im Original.
 
 ### Annahmen
-Siehe PLAN.md, Abschnitt 5 (A1–A7).
+Siehe PLAN.md, Abschnitt 5 (A1–A15).
