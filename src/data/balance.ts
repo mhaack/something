@@ -248,6 +248,38 @@ export const BUILDING_VALUES = {
     restTicks: 100,
     inputs: { wheat: 4, water: 4 },
   },
+  smelter: {
+    planks: 3,
+    stone: 3,
+    radius: 0,
+    workTicks: 160,
+    restTicks: 40,
+    inputs: { ironore: 4, coal: 4 },
+  },
+  mint: {
+    planks: 3,
+    stone: 3,
+    radius: 0,
+    workTicks: 180,
+    restTicks: 40,
+    inputs: { goldore: 4, coal: 4 },
+  },
+  toolsmith: {
+    planks: 3,
+    stone: 2,
+    radius: 0,
+    workTicks: 160,
+    restTicks: 40,
+    inputs: { iron: 4, coal: 4 },
+  },
+  weaponsmith: {
+    planks: 3,
+    stone: 3,
+    radius: 0,
+    workTicks: 180,
+    restTicks: 40,
+    inputs: { iron: 4, coal: 4 },
+  },
   coalmine: MINE_VALUES,
   ironmine: MINE_VALUES,
   goldmine: MINE_VALUES,
@@ -277,4 +309,30 @@ export const TREES = {
   GROWTH_STAGE_TICKS: 1100,
   /** Ausgewachsene Stufe (nur ausgewachsene Bäume werden gefällt). */
   MATURE_STAGE: 3,
+} as const;
+
+export const TOOLS = {
+  /** Höchster Wert eines Prioritätsreglers. */
+  PRIORITY_MAX: 10,
+  /** Startpriorität je Werkzeug. */
+  DEFAULT_PRIORITY: {
+    hammer: 5,
+    shovel: 5,
+    axe: 5,
+    saw: 3,
+    pick: 5,
+    rod: 3,
+    scythe: 3,
+    cleaver: 2,
+    rollingpin: 2,
+    tongs: 2,
+    crucible: 2,
+  },
+} as const;
+
+export const STATS = {
+  /** Abstand zwischen zwei Statistik-Stichproben in Ticks (30 s bei 1x). */
+  SAMPLE_INTERVAL_TICKS: 600,
+  /** Gespeicherte Stichproben (120 × 30 s = 1 Stunde Spielzeit). */
+  MAX_SAMPLES: 120,
 } as const;

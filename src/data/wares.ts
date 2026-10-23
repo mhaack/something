@@ -52,6 +52,10 @@ export const JOBS = [
   'donkeybreeder',
   'geologist',
   'miner',
+  'smelter',
+  'minter',
+  'toolsmith',
+  'weaponsmith',
 ] as const;
 export type Job = (typeof JOBS)[number];
 
@@ -75,7 +79,27 @@ export const JOB_TOOLS: Record<Job, WareType | null> = {
   donkeybreeder: null,
   geologist: 'hammer',
   miner: 'pick',
+  smelter: 'crucible',
+  minter: 'crucible',
+  toolsmith: 'tongs',
+  weaponsmith: 'hammer',
 };
+
+/** Werkzeuge, die die Werkzeugschmiede herstellen kann (Reihenfolge der Prioritätsliste). */
+export const TOOL_WARES = [
+  'hammer',
+  'shovel',
+  'axe',
+  'saw',
+  'pick',
+  'rod',
+  'scythe',
+  'cleaver',
+  'rollingpin',
+  'tongs',
+  'crucible',
+] as const satisfies readonly WareType[];
+export type ToolWare = (typeof TOOL_WARES)[number];
 
 /** Nahrung, die Bergleute essen. */
 export const FOOD: readonly WareType[] = ['fish', 'bread', 'meat'];

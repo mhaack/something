@@ -1,6 +1,14 @@
 import { BUILD, START, TRANSPORT } from '../data/balance';
 import { requestWares } from './buildings';
 import { growTrees } from './trees';
+import type { ToolWare } from '../data/wares';
+import {
+  defaultToolPriority,
+  emptyStats,
+  sampleStats,
+  zeroToolCredit,
+  type PlayerStats,
+} from './economy';
 import type { Command } from './commands';
 import { applyCommand } from './commandHandlers';
 import type { Building, Flag, PlayerLedger, Road, Settler, Sign, Ware } from './entities';
@@ -11,7 +19,7 @@ import { processRouteQueue, scheduleReroutes } from './routing';
 import { updateSettler } from './carriers';
 import { createHQ, requestWorkers, storeTick } from './store';
 
-export const WORLD_VERSION = 4;
+export const WORLD_VERSION = 5;
 
 export interface Player {
   id: number;
@@ -22,6 +30,10 @@ export interface Player {
   hqNode: number;
   /** Gebäude-ID des Hauptquartiers (0 = verloren). */
   hq: number;
+  /** Prioritäten der Werkzeugschmiede (0 = nicht herstellen). */
+  toolPriority: Record<ToolWare, number>;
+  /** Guthaben für den gewichteten Rundlauf der Werkzeugwahl. */
+  toolCredit: Record<ToolWare, number>;
 }
 
 /** Kompletter, JSON-serialisierbarer Weltzustand. */
@@ -53,6 +65,8 @@ export interface World {
   signs: Sign[];
   /** Zähler für Änderungen an Höhen und Kartenobjekten (für Render-Caches). */
   mapRevision: number;
+  /** Produktions- und Bestandsstatistik je Spieler. */
+  stats: PlayerStats[];
 }
 
 export interface NewWorldOptions {
@@ -78,7 +92,15 @@ export function createWorldFromMap(seed: string, map: GameMap, starts: number[])
     rng: createRng(`${seed}:sim`),
     nextId: 1,
     map,
-    players: starts.map((hqNode, id) => ({ id, color: id, human: id === 0, hqNode, hq: 0 })),
+    players: starts.map((hqNode, id) => ({
+      id,
+      color: id,
+      human: id === 0,
+      hqNode,
+      hq: 0,
+      toolPriority: defaultToolPriority(),
+      toolCredit: zeroToolCredit(),
+    })),
     owner: new Array<number>(n).fill(-1),
     nodeFlag: new Array<number>(n).fill(0),
     nodeRoad: new Array<number>(n).fill(0),
@@ -93,6 +115,7 @@ export function createWorldFromMap(seed: string, map: GameMap, starts: number[])
     growing: [],
     signs: [],
     mapRevision: 0,
+    stats: starts.map(() => emptyStats()),
   };
   for (const p of world.players) createHQ(world, p);
   return world;
@@ -115,6 +138,7 @@ export function step(world: World, commands: readonly Command[] = []): void {
     if (s) updateSettler(world, s);
   }
   growTrees(world);
+  sampleStats(world);
   if (world.tick % BUILD.REQUEST_INTERVAL_TICKS === 0 && world.signs.length) {
     world.signs = world.signs.filter((s) => s.until > world.tick);
   }

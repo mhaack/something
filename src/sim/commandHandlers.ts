@@ -1,4 +1,5 @@
 import { WARE_TYPES } from '../data/wares';
+import { TOOLS } from '../data/balance';
 import type { Command } from './commands';
 import { canPlaceFlag, placeFlag, removeFlag } from './flags';
 import { buildRoad, removeRoad, validateRoad } from './roads';
@@ -43,6 +44,12 @@ export function applyCommand(world: World, cmd: Command): boolean {
     }
     case 'sendGeologist':
       return sendGeologist(world, cmd.player, cmd.flag);
+    case 'setToolPriority': {
+      const p = world.players[cmd.player];
+      if (!p || !(cmd.tool in p.toolPriority)) return false;
+      p.toolPriority[cmd.tool] = Math.max(0, Math.min(TOOLS.PRIORITY_MAX, Math.round(cmd.value)));
+      return true;
+    }
     case 'sendWare': {
       const p = world.players[cmd.player];
       const hq = p ? world.buildings[p.hq] : undefined;

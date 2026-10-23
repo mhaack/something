@@ -3,7 +3,7 @@
  * läuft über einen Befehl, damit Replays (Seed + Befehlsliste) deterministisch nachspielbar sind.
  */
 import type { BuildingType } from '../data/buildings';
-import type { WareType } from '../data/wares';
+import type { ToolWare, WareType } from '../data/wares';
 
 export type Command =
   | { type: 'noop'; player: number }
@@ -14,6 +14,7 @@ export type Command =
   | { type: 'placeBuilding'; player: number; node: number; building: BuildingType }
   | { type: 'removeBuilding'; player: number; building: number }
   | { type: 'sendGeologist'; player: number; flag: number }
+  | { type: 'setToolPriority'; player: number; tool: ToolWare; value: number }
   /** Testfunktion: Das HQ schickt eine Ware zu einer Flagge, von dort geht sie zurück ins Lager. */
   | { type: 'sendWare'; player: number; flag: number; ware?: WareType };
 

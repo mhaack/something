@@ -15,6 +15,7 @@ import { isTreeSpot } from './mapgen';
 import { nextInt } from './rng';
 import { freePath } from './routing';
 import { flagLoad, newSettler } from './store';
+import { chooseTool, hasToolOrders, recordConsumed, recordProduced } from './economy';
 import { isMatureField, isMatureTree, plantTree, removeObject, sowField } from './trees';
 import { isPassable } from './map';
 import { allocId, type World } from './world';
@@ -169,6 +170,11 @@ function insideWork(world: World, s: Settler, b: Building): void {
     }
     case 'workshop': {
       const needs = Object.entries(def.consumes) as [WareType, number][];
+      if (def.outputChoice === 'tools' && !hasToolOrders(world, b.owner)) {
+        b.status = 'noOrders';
+        s.wait = TRANSPORT.WORKER_REQUEST_INTERVAL_TICKS;
+        return;
+      }
       if (!needs.every(([t, n]) => b.stock[t] >= n)) {
         b.status = 'waitingInput';
         s.wait = TRANSPORT.WORKER_REQUEST_INTERVAL_TICKS;
@@ -176,7 +182,7 @@ function insideWork(world: World, s: Settler, b: Building): void {
       }
       for (const [t, n] of needs) {
         b.stock[t] -= n;
-        world.ledger[b.owner].wares[t] -= n;
+        recordConsumed(world, b.owner, t, n);
       }
       b.status = 'ok';
       s.state = 'producing';
@@ -225,7 +231,7 @@ function insideWork(world: World, s: Settler, b: Building): void {
       )[0];
       if (vein === undefined) return idleNoResources(s, b);
       b.stock[food]--;
-      world.ledger[b.owner].wares[food]--;
+      recordConsumed(world, b.owner, food);
       if (--map.resourceAmounts[vein] <= 0) map.resources[vein] = Resource.None;
       b.status = 'ok';
       s.state = 'producing';
@@ -285,7 +291,7 @@ function produce(world: World, s: Settler, b: Building, type: WareType): void {
     routePending: false,
   };
   world.wares[id] = w;
-  world.ledger[b.owner].wares[type]++;
+  recordProduced(world, b.owner, type);
   s.ware = id;
 }
 
@@ -418,7 +424,9 @@ function deliverOutput(world: World, s: Settler, b: Building): void {
 
 function finishProduction(world: World, s: Settler, b: Building): void {
   const def = BUILDINGS[b.type];
-  const out = def.output;
+  let out: WareType | null = def.output;
+  if (def.outputChoice === 'tools') out = chooseTool(world, b.owner);
+  else if (def.outputChoice === 'weapons') out = b.produced % 2 === 0 ? 'sword' : 'shield';
   if (def.producesJob) {
     // Neues Tier bzw. neue Person läuft selbstständig ins nächste Lager.
     const born = newSettler(world, b.owner, def.producesJob, b.node);
@@ -473,7 +481,7 @@ function buildStep(world: World, s: Settler, b: Building): void {
   }
   const use = (type: 'planks' | 'stone'): void => {
     b.stock[type]--;
-    world.ledger[b.owner].wares[type]--;
+    recordConsumed(world, b.owner, type);
     if (type === 'planks') site.usedPlanks++;
     else site.usedStone++;
     b.status = 'ok';

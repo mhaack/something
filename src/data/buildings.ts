@@ -26,8 +26,10 @@ export interface BuildingDef {
   resource: ResourceId;
   /** Statt einer Ware entsteht eine Person dieses Berufs (Eselzucht), die ins Lager geht. */
   producesJob: Job | null;
+  /** Ausgabe wird je Zyklus gewählt: Werkzeug nach Prioritätsliste bzw. Schwert/Schild im Wechsel. */
+  outputChoice: 'tools' | 'weapons' | null;
   /** Menügruppe. */
-  group: 'basic' | 'food' | 'mining' | 'store';
+  group: 'basic' | 'food' | 'mining' | 'metal' | 'store';
   /** Eingangspuffer pro Ware. */
   inputs: Partial<Record<WareType, number>>;
   cost: { planks: number; stone: number };
@@ -43,6 +45,7 @@ interface DefExtra {
   consumesAny?: WareType[];
   resource?: ResourceId;
   producesJob?: Job;
+  outputChoice?: 'tools' | 'weapons';
   buildable?: boolean;
 }
 
@@ -67,6 +70,7 @@ function def(
     consumesAny: extra.consumesAny ?? [],
     resource: extra.resource ?? Resource.None,
     producesJob: extra.producesJob ?? null,
+    outputChoice: extra.outputChoice ?? null,
     inputs: v.inputs as Partial<Record<WareType, number>>,
     cost: { planks: v.planks, stone: v.stone },
     radius: v.radius,
@@ -104,6 +108,20 @@ export const BUILDINGS: Record<BuildingType, BuildingDef> = {
     consumes: { wheat: 1, water: 1 },
     producesJob: 'donkey',
   }),
+  smelter: def('smelter', 'medium', 'workshop', 'metal', 'smelter', 'iron', {
+    consumes: { ironore: 1, coal: 1 },
+  }),
+  mint: def('mint', 'medium', 'workshop', 'metal', 'minter', 'coins', {
+    consumes: { goldore: 1, coal: 1 },
+  }),
+  toolsmith: def('toolsmith', 'medium', 'workshop', 'metal', 'toolsmith', null, {
+    consumes: { iron: 1, coal: 1 },
+    outputChoice: 'tools',
+  }),
+  weaponsmith: def('weaponsmith', 'medium', 'workshop', 'metal', 'weaponsmith', null, {
+    consumes: { iron: 1, coal: 1 },
+    outputChoice: 'weapons',
+  }),
   coalmine: def('coalmine', 'mine', 'mine', 'mining', 'miner', 'coal', MINE(Resource.Coal)),
   ironmine: def('ironmine', 'mine', 'mine', 'mining', 'miner', 'ironore', MINE(Resource.Iron)),
   goldmine: def('goldmine', 'mine', 'mine', 'mining', 'miner', 'goldore', MINE(Resource.Gold)),
@@ -136,6 +154,10 @@ export const BUILD_MENU: BuildingType[] = [
   'ironmine',
   'goldmine',
   'granitemine',
+  'smelter',
+  'mint',
+  'toolsmith',
+  'weaponsmith',
   'storehouse',
 ];
 

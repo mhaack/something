@@ -28,6 +28,7 @@ import {
 } from './routing';
 import { isStore, newSettler, startNextStep } from './store';
 import { allocId, type World } from './world';
+import { recordConsumed } from './economy';
 
 /** Knoten, die ein Gebäude belegt: groß = Bauplatz sowie W, NW und NO, sonst nur der Bauplatz. */
 export function footprint(world: World, node: number, size: BuildingSize): number[] {
@@ -366,7 +367,7 @@ function takeWorker(world: World, store: Building, job: Job): void {
   store.people.carrier--;
   if (!tool) return;
   store.stock[tool]--;
-  world.ledger[store.owner].wares[tool]--;
+  recordConsumed(world, store.owner, tool);
 }
 
 /** Findet ein erreichbares Lager, das den Beruf stellen kann, samt Route zur Zielflagge. */

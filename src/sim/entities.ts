@@ -1,7 +1,7 @@
 import type { BuildingType } from '../data/buildings';
 import type { Job, JobCounts, WareCounts, WareType } from '../data/wares';
 
-export type BuildingStatus = 'ok' | 'noResources' | 'outputBlocked' | 'waitingInput';
+export type BuildingStatus = 'ok' | 'noResources' | 'outputBlocked' | 'waitingInput' | 'noOrders';
 
 /** Marker im Richtungsslot einer Flagge: hier hängt das Gebäude (NW-Richtung). */
 export const SLOT_BUILDING = -1;
