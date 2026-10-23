@@ -1,6 +1,24 @@
 # STATUS
 
-## Aktuelle Phase: 3 abgeschlossen
+## Aktuelle Phase: 4 abgeschlossen
+
+### Erledigt (Phase 4)
+- Nahrungsgebäude: Fischer (Fischbestand an Küsten), Bauernhof (sät Felder, die in Stufen reifen,
+  und erntet Weizen), Brunnen, Mühle (Weizen → Mehl), Bäckerei (Mehl + Wasser → Brot),
+  Schweinezucht (Weizen + Wasser → Schwein), Metzgerei (Schwein → Fleisch).
+- Bergwerke für Kohle, Eisen, Gold und Granit: nur auf Bergplätzen, verbrauchen pro Abbau eine
+  Nahrungsration, Vorkommen im Radius werden erschöpft.
+- Geologe: per Flaggen-Menü oder Taste `J` zu einer Flagge geschickt, Probebohrungen mit
+  Schildern (nichts/wenig/viel), Schilder verschwinden nach einer Weile; Hinweis beim Überfahren.
+- Neue Berufe mit eigenen Figuren (Fischer mit Angel, Bauer mit Sense, Bergmann, Geologe, …).
+- Grafik: Fischerhütte, Bauernhof, Brunnen, Windmühle, Fachwerk-Bäckerei, Schweinezucht,
+  Metzgerei, Stolleneingänge mit Lore je Erz, Felder in vier Stufen, Geologenschilder.
+- Baumenü mit Gruppen (Holz und Stein, Nahrung, Bergbau, Lager); Infofenster der Bergwerke zeigt
+  den Nahrungsvorrat.
+- Tests (64): Fischer, Bauer, Brunnen, Mühle/Bäckerei, Schweinezucht/Metzger, Kohlebergwerk mit
+  Nahrungsverbrauch, Warten ohne Nahrung, Erschöpfung, Bergplatz-Regel, Geologe mit Schildern.
+
+## Davor: Phase 3
 
 ### Erledigt (Phase 3)
 - Gebäudedefinitionen (`src/data/buildings.ts`), Werte in `balance.ts`: Lagerhaus, Holzfäller,
@@ -71,16 +89,17 @@
 - Browser (Chromium headless, 1280×720, 256×256-Karte, 8x-Tempo, ~440 Siedler): 60 FPS,
   ca. 1,8 ms Renderzeit pro Frame.
 
-### Offen / nächste Schritte (Phase 4)
-- Nahrungsketten: Fischer, Bauer, Mühle, Bäcker, Schweinezucht, Metzger, Brunnen.
-- Geologe, Bergwerke mit Nahrungsverbrauch.
+### Offen / nächste Schritte (Phase 5)
+- Eisenschmelze, Goldschmelze/Münzprägerei, Werkzeugschmiede mit Prioritätsliste,
+  Waffenschmiede, Statistik-Fenster.
 
 ### Bekannte Punkte
 - Abgerissene Gebäude verschwinden sofort (Brand-Animation folgt mit dem Militär in Phase 6).
 - Minikarte zeigt Gebäude noch nicht.
+- Fischbestände wachsen nicht nach; Eselzucht fehlt noch (Esel nur aus dem Startbestand).
 - Minikarte zeigt noch keine Straßen und Grenzen (Phase 6 mit Territorium).
 - Kein Hauptmenü, Seed/Größe/Spieler per URL (Annahme A5).
 - Siedler laufen auf Straßen durcheinander hindurch (kein Ausweichen), wie im Original.
 
 ### Annahmen
-Siehe PLAN.md, Abschnitt 5 (A1–A23).
+Siehe PLAN.md, Abschnitt 5 (A1–A28).

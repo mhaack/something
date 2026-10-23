@@ -29,7 +29,7 @@ Tastenübersicht im Spiel.
 | Werkzeug wählen | `1` Auswählen · `2` Flagge · `3` Straße · `4` Abreißen · `5` Bauen |
 | Gebäude bauen | Klick auf einen Bauplatz (Auswählen oder Bauen) öffnet das Baumenü mit Kosten und Vorschau |
 | Gebäude-Info / Abriss | Klick auf ein Gebäude; Abriss im Infofenster oder mit dem Abreißen-Werkzeug |
-| Direkt unter dem Mauszeiger | `F` Flagge · `R` Straße ab Flagge · `Entf` Abriss · `G` Testware |
+| Direkt unter dem Mauszeiger | `F` Flagge · `R` Straße ab Flagge · `Entf` Abriss · `J` Geologe zur Flagge · `G` Testware |
 | Straßenbau | Knoten anklicken verlängert; Klick auf Flagge oder zweimal aufs Ende beendet; Rechtsklick/Rücktaste: Schritt zurück; Esc: abbrechen |
 | Bauhilfe (Bauplatzgrößen) / Stau-Anzeige | `H` / `V` |
 | Karte scrollen | Ziehen, Pfeiltasten/WASD oder Maus an den Bildrand |

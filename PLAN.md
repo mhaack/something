@@ -150,3 +150,15 @@ STATUS.md und Commit.
   Bestand und Personen eines abgerissenen Gebäudes gehen ins nächste Lager.
 - A23: Baumwachstum: `objectData` kodiert Art (Bits 0–1) und Stufe (ab Bit 2); gepflanzte Bäume
   wachsen über `world.growingTrees`, nur ausgewachsene werden gefällt.
+- A24: Fischbestand liegt auf Wasserknoten nahe der Küste (`MAP.FISH_*`) und wächst nicht nach.
+  Der Fischer steht am Ufer neben dem Wasserknoten.
+- A25: Felder sind Kartenobjekte (`MapObject.Field`) mit Wachstumsstufe; sie blockieren Straßen
+  und Gebäude wie Bäume. Bäume und Felder wachsen gemeinsam über `world.growing`.
+- A26: Bergwerke brauchen pro Abbau eine Nahrungsration (Fisch, Brot oder Fleisch, die erste
+  vorhandene) und bauen Vorkommen im Radius `radius` ab; ohne Vorkommen meldet die Mine „Keine
+  Ressourcen“ und verbraucht nichts. Granitbergwerke liefern Steine.
+- A27: Brunnenwart, Müller und Schweinezüchter brauchen kein Werkzeug und entstehen direkt aus
+  einem Träger.
+- A28: Der Geologe wird zu einer Flagge geschickt (braucht Träger + Hammer), macht
+  `GEOLOGIST.SURVEYS` Probebohrungen an zufälligen freien Knoten im Radius und stellt Schilder
+  auf (nichts / wenig / viel). Schilder verschwinden nach `SIGN_LIFETIME_TICKS`.
