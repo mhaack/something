@@ -1,6 +1,32 @@
 # STATUS
 
-## Aktuelle Phase: 2 abgeschlossen, Zwischenschritt Grafik/UX erledigt
+## Aktuelle Phase: 3 abgeschlossen
+
+### Erledigt (Phase 3)
+- Gebäudedefinitionen (`src/data/buildings.ts`), Werte in `balance.ts`: Lagerhaus, Holzfäller,
+  Förster, Steinbruch, Sägewerk (HQ bleibt Startgebäude).
+- Bauplatzgrößen klein/mittel/groß/Bergwerk nach Hindernissen, Steigung, Gebiet und Flaggenplatz;
+  Bauhilfe zeigt die Größen als Symbole.
+- Baustellen: Absteckung, Planierer ebnet unebenen Boden (Terrain wird live neu gezeichnet),
+  Bauarbeiter verbaut angelieferte Bretter/Steine, sichtbarer Baufortschritt mit Gerüst.
+- Arbeiter entstehen aus Trägern plus Werkzeug (Hammer, Schaufel, Axt, Spitzhacke, Säge).
+- Holzfäller fällt ausgewachsene Bäume im Radius, Förster pflanzt Setzlinge, die in Stufen
+  wachsen, Steinmetz baut Felsen ab, Sägewerk macht aus Holz Bretter.
+- Bedarfslogistik: Gebäude fordern Material/Eingänge aus dem nächsten Lager an, Produkte gehen
+  direkt zum nächsten Abnehmer mit Bedarf, sonst ins Lager. Ausgang blockiert bei voller Flagge.
+- Status „Keine Ressourcen“, „Flagge voll“, „Wartet auf Waren“, „Kein Arbeiter“, „Keine Straße zum
+  Lager“; Statussymbole über Gebäuden.
+- Abriss von Gebäuden und Baustellen ohne Warenverlust; Flaggenabriss reißt das Gebäude mit.
+- Grafik: Hütten, Sägewerk, Lagerhaus, Setzlinge, Berufsfiguren mit Werkzeug und Arbeitsanimation.
+- UI: Bauen-Werkzeug (5), Baumenü mit Gebäudebild, Kosten und Vorschau auf der Karte,
+  Infofenster für Baustellen (Fortschritt, Material) und Betriebe (Status, Vorrat, Produktion,
+  Arbeiter, Abriss).
+- Tests (55): Bauplatzregeln, Bauablauf mit Warenbilanz, Planieren, Abriss, Holzfäller,
+  Förster mit Wachstum, Steinbruch, Sägewerk, Direktlieferung an Baustellen, Determinismus.
+- Im Browser durchgespielt: erster Kreislauf Holz/Stein → Gebäude läuft (z. B. 22 Bretter aus dem
+  Sägewerk in ~4,5 Spielminuten).
+
+## Davor: Phase 2 und Zwischenschritt Grafik/UX
 
 ### Erledigt (Zwischenschritt Grafik und Bedienung)
 - Terrain: geditherte Übergänge zwischen Terraintypen, Sandstreifen und Schaum an Küsten,
@@ -45,15 +71,16 @@
 - Browser (Chromium headless, 1280×720, 256×256-Karte, 8x-Tempo, ~440 Siedler): 60 FPS,
   ca. 1,8 ms Renderzeit pro Frame.
 
-### Offen / nächste Schritte (Phase 3)
-- Baustellen, Bauarbeiter, Planierer, Bauplatzgrößen.
-- Holzfäller, Förster, Sägewerk, Steinbruch; erster Kreislauf Holz/Stein → Gebäude.
-- Bedarfsgesteuerte Lieferungen (Anforderungen) statt Testwaren.
+### Offen / nächste Schritte (Phase 4)
+- Nahrungsketten: Fischer, Bauer, Mühle, Bäcker, Schweinezucht, Metzger, Brunnen.
+- Geologe, Bergwerke mit Nahrungsverbrauch.
 
 ### Bekannte Punkte
+- Abgerissene Gebäude verschwinden sofort (Brand-Animation folgt mit dem Militär in Phase 6).
+- Minikarte zeigt Gebäude noch nicht.
 - Minikarte zeigt noch keine Straßen und Grenzen (Phase 6 mit Territorium).
 - Kein Hauptmenü, Seed/Größe/Spieler per URL (Annahme A5).
 - Siedler laufen auf Straßen durcheinander hindurch (kein Ausweichen), wie im Original.
 
 ### Annahmen
-Siehe PLAN.md, Abschnitt 5 (A1–A17).
+Siehe PLAN.md, Abschnitt 5 (A1–A23).

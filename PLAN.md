@@ -130,10 +130,23 @@ STATUS.md und Commit.
   Pro Abarbeitungsrunde wird je Ziel ein rückwärts berechnetes Distanzfeld geteilt.
 - A14: Esel kommen in Phase 2 aus dem HQ-Startbestand; eine Eselzucht folgt mit den
   Nahrungsketten. Einmal „stark befahren" bleibt eine Straße es.
-- A15: Testfunktion „Testware hierher schicken" (Taste G) existiert bis Phase 3, damit der
-  Warentransport ohne Produktionsgebäude sichtbar ist.
+- A15: Testfunktion „Testware hierher schicken" (Taste G) bleibt als Debug-Hilfe erhalten.
 - A16: Zierelemente (Gras, Blumen, Steinchen, Büsche, Schilf) und Wasserreflexe sind reine
   Darstellung, abgeleitet aus einem Knotenhash. Sie stehen nicht im Spielzustand und blockieren
   nichts.
 - A17: Werkzeug-Modi (Auswählen, Flagge, Straße, Abreißen) über Leiste oder Tasten 1–4.
   Rechtsklick nimmt im Straßenbau den letzten Abschnitt zurück, sonst verlässt er das Werkzeug.
+- A18: `src/data/buildings.ts` beschreibt Gebäude (Größe, Arbeiter, Ein-/Ausgaben, Art der Arbeit);
+  alle Zahlen (Kosten, Zeiten, Radien, Puffer) stehen in `balance.ts` unter `BUILDING_VALUES`.
+- A19: Berufe entstehen schon ab Phase 3 aus einem Träger plus Werkzeug aus dem Lager (das Werkzeug
+  wird verbraucht). Werkzeugschmiede und Prioritätsliste folgen in Phase 5.
+- A20: Bedarf wird alle `REQUEST_INTERVAL_TICKS` aus dem nächsten Lager mit Bestand gedeckt.
+  Produzierte Waren gehen direkt zum nächsten Gebäude mit Fehlmenge, sonst ins Lager. Laufende
+  Lieferungen werden jedes Mal aus den Waren-Entities neu gezählt (keine Zähler, die driften).
+- A21: Bauplatzgröße: klein = Platz frei und Steigung ≤ `BUILD_SLOPE_SMALL`; mittel zusätzlich
+  Nachbarn ohne Bäume/Felsen/Gebäude; groß zusätzlich W/NW/NO frei und eben. Der Planierer ebnet
+  nur die Gebäudeknoten auf das Mittel der Umgebung, Straßen bleiben unberührt.
+- A22: Wer die Flagge eines Gebäudes abreißt, reißt das Gebäude mit ab (nicht beim HQ).
+  Bestand und Personen eines abgerissenen Gebäudes gehen ins nächste Lager.
+- A23: Baumwachstum: `objectData` kodiert Art (Bits 0–1) und Stufe (ab Bit 2); gepflanzte Bäume
+  wachsen über `world.growingTrees`, nur ausgewachsene werden gefällt.
