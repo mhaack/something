@@ -56,6 +56,7 @@ export const JOBS = [
   'minter',
   'toolsmith',
   'weaponsmith',
+  'soldier',
 ] as const;
 export type Job = (typeof JOBS)[number];
 
@@ -83,7 +84,12 @@ export const JOB_TOOLS: Record<Job, WareType | null> = {
   minter: 'crucible',
   toolsmith: 'tongs',
   weaponsmith: 'hammer',
+  // Soldaten brauchen Schwert UND Schild (siehe SOLDIER_EQUIPMENT).
+  soldier: 'sword',
 };
+
+/** Ausrüstung, mit der aus einem Träger ein Soldat wird. */
+export const SOLDIER_EQUIPMENT: readonly WareType[] = ['sword', 'shield'];
 
 /** Werkzeuge, die die Werkzeugschmiede herstellen kann (Reihenfolge der Prioritätsliste). */
 export const TOOL_WARES = [

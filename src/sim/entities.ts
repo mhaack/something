@@ -67,6 +67,10 @@ export interface Building {
   status: BuildingStatus;
   /** Produzierte Waren (Statistik). */
   produced: number;
+  /** Ränge der Soldaten im Gebäude (Militärgebäude und Lager). */
+  soldiers: number[];
+  /** Zeitgeber für Beförderungen. */
+  promoTimer: number;
   /** Ausgabewarteschlange: Waren, die das Lager auf seine Flagge legen soll. */
   outQueue: OutOrder[];
   outTimer: number;
@@ -132,7 +136,14 @@ export type SettlerState =
   // Geologe
   | 'geoTravel'
   | 'geoWalk'
-  | 'geoWork';
+  | 'geoWork'
+  // Soldaten
+  | 'atkMarch'
+  | 'atkWait'
+  | 'duel'
+  | 'defend'
+  | 'defReturn'
+  | 'soldierReturn';
 
 export interface Settler {
   id: number;
@@ -167,6 +178,19 @@ export interface Settler {
   targetNode: number;
   /** Restzähler (z. B. verbleibende Probebohrungen des Geologen). */
   count: number;
+  /** Soldatenrang (0..MAX_RANK). */
+  rank: number;
+  /** Gegner im Zweikampf (0 = keiner). */
+  duel: number;
+  /** Lebenspunkte im laufenden Zweikampf. */
+  hp: number;
+}
+
+/** Brennendes, zerstörtes Gebäude (nur zur Anzeige). */
+export interface Fire {
+  node: number;
+  type: BuildingType;
+  until: number;
 }
 
 /** Schild des Geologen: gefundener Bodenschatz an einem Knoten. */

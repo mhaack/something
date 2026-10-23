@@ -11,7 +11,9 @@ import {
 } from './economy';
 import type { Command } from './commands';
 import { applyCommand } from './commandHandlers';
-import type { Building, Flag, PlayerLedger, Road, Settler, Sign, Ware } from './entities';
+import type { Building, Fire, Flag, PlayerLedger, Road, Settler, Sign, Ware } from './entities';
+import { recomputeTerritory } from './territory';
+import { applyTerritoryChange, militaryTick } from './military';
 import type { GameMap } from './map';
 import { generateMap } from './mapgen';
 import { createRng, type RngState } from './rng';
@@ -19,7 +21,7 @@ import { processRouteQueue, scheduleReroutes } from './routing';
 import { updateSettler } from './carriers';
 import { createHQ, requestWorkers, storeTick } from './store';
 
-export const WORLD_VERSION = 5;
+export const WORLD_VERSION = 6;
 
 export interface Player {
   id: number;
@@ -67,6 +69,12 @@ export interface World {
   mapRevision: number;
   /** Produktions- und Bestandsstatistik je Spieler. */
   stats: PlayerStats[];
+  /** Gebiet muss neu berechnet werden. */
+  territoryDirty: boolean;
+  /** Brennende Ruinen (Anzeige). */
+  fires: Fire[];
+  /** Seit der letzten Gebietsberechnung eroberte Gebäude. */
+  conquered: number[];
 }
 
 export interface NewWorldOptions {
@@ -116,8 +124,12 @@ export function createWorldFromMap(seed: string, map: GameMap, starts: number[])
     signs: [],
     mapRevision: 0,
     stats: starts.map(() => emptyStats()),
+    territoryDirty: false,
+    fires: [],
+    conquered: [],
   };
   for (const p of world.players) createHQ(world, p);
+  recomputeTerritory(world);
   return world;
 }
 
@@ -137,6 +149,8 @@ export function step(world: World, commands: readonly Command[] = []): void {
     const s = world.settlers[Number(id)];
     if (s) updateSettler(world, s);
   }
+  militaryTick(world);
+  if (world.territoryDirty) applyTerritoryChange(world);
   growTrees(world);
   sampleStats(world);
   if (world.tick % BUILD.REQUEST_INTERVAL_TICKS === 0 && world.signs.length) {

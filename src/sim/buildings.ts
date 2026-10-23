@@ -146,6 +146,8 @@ function newBuilding(
     worker: 0,
     status: 'ok',
     produced: 0,
+    soldiers: [],
+    promoTimer: 0,
     outQueue: [],
     outTimer: 0,
     spawnTimer: 0,
@@ -207,6 +209,8 @@ function evacuate(world: World, b: Building): void {
     if (n && target) target.people[job] += n;
     b.people[job] = 0;
   }
+  if (target) target.soldiers.push(...b.soldiers);
+  b.soldiers = [];
 }
 
 /** Reißt ein Gebäude ab (das Hauptquartier nicht). Nichts geht verloren. */

@@ -1,7 +1,7 @@
 /** Lager (Hauptquartier): Bestand, Ausgabe auf die Flagge, Träger- und Eselnachschub. */
-import { START_STOCK, STORE, TRANSPORT } from '../data/balance';
+import { MILITARY, START_STOCK, STORE, TRANSPORT } from '../data/balance';
 import { WARE_TYPES, emptyJobCounts, emptyWareCounts, type Job } from '../data/wares';
-import { Dir, neighbor, nodesInRadius } from './geometry';
+import { Dir, neighbor } from './geometry';
 import type { Building, Road, Settler, Ware } from './entities';
 import { SLOT_BUILDING } from './entities';
 import { placeFlag } from './flags';
@@ -9,6 +9,7 @@ import { enqueueRoute, nodesAlongRoute, routeSteps, searchFlags } from './routin
 import { stepTicks } from './roads';
 import { BUILDINGS } from '../data/buildings';
 import { dispatchBuildingWorkers } from './buildings';
+import { dispatchSoldiers } from './military';
 import { allocId, type Player, type World } from './world';
 
 export function isStore(b: Building): boolean {
@@ -23,9 +24,6 @@ export function largeFootprint(world: World, node: number): number[] {
 
 export function createHQ(world: World, player: Player): Building {
   const map = world.map;
-  for (const n of nodesInRadius(map, player.hqNode, STORE.HQ_RADIUS)) {
-    if (world.owner[n] < 0) world.owner[n] = player.id;
-  }
   const flagNode = neighbor(map, player.hqNode, Dir.SE);
   const flag = placeFlag(world, player.id, flagNode);
   const id = allocId(world);
@@ -45,6 +43,8 @@ export function createHQ(world: World, player: Player): Building {
     worker: 0,
     status: 'ok',
     produced: 0,
+    soldiers: [...MILITARY.START_SOLDIERS],
+    promoTimer: 0,
     outQueue: [],
     outTimer: 0,
     spawnTimer: 0,
@@ -180,6 +180,9 @@ export function newSettler(world: World, owner: number, job: Job, node: number):
     home: 0,
     targetNode: -1,
     count: 0,
+    rank: 0,
+    duel: 0,
+    hp: 0,
   };
   world.settlers[id] = s;
   return s;
@@ -194,6 +197,7 @@ export function requestWorkers(world: World): void {
     if (road.busy && !road.carriers[1]) dispatchWorker(world, road, 'donkey', 1);
   }
   dispatchBuildingWorkers(world);
+  dispatchSoldiers(world);
 }
 
 function dispatchWorker(world: World, road: Road, job: Job, slot: 0 | 1): void {

@@ -1,5 +1,6 @@
 import { WARE_TYPES } from '../data/wares';
 import { TOOLS } from '../data/balance';
+import { launchAttack } from './military';
 import type { Command } from './commands';
 import { canPlaceFlag, placeFlag, removeFlag } from './flags';
 import { buildRoad, removeRoad, validateRoad } from './roads';
@@ -50,6 +51,8 @@ export function applyCommand(world: World, cmd: Command): boolean {
       p.toolPriority[cmd.tool] = Math.max(0, Math.min(TOOLS.PRIORITY_MAX, Math.round(cmd.value)));
       return true;
     }
+    case 'attack':
+      return launchAttack(world, cmd.player, cmd.target, Math.max(0, Math.floor(cmd.soldiers))) > 0;
     case 'sendWare': {
       const p = world.players[cmd.player];
       const hq = p ? world.buildings[p.hq] : undefined;

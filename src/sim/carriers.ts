@@ -245,7 +245,7 @@ function afterDelivery(world: World, s: Settler, road: Road, flagId: number): vo
 function insideBuilding(world: World, s: Settler): void {
   const b = world.buildings[s.targetBuilding];
   const w = world.wares[s.ware];
-  if (b && w) {
+  if (b && w && b.owner === w.owner) {
     acceptWare(world, b, w);
     s.ware = 0;
     const road = world.roads[s.road];
@@ -309,6 +309,7 @@ function enterStore(world: World, s: Settler): void {
   }
   const w = world.wares[s.ware];
   if (w) acceptWare(world, store, w);
-  store.people[s.job]++;
+  if (s.job === 'soldier') store.soldiers.push(s.rank);
+  else store.people[s.job]++;
   delete world.settlers[s.id];
 }

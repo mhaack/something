@@ -8,7 +8,15 @@ export type BuildingSize = 'small' | 'medium' | 'large' | 'mine';
 
 /** Art der Arbeit, die das Gebäude verrichtet. */
 export type WorkKind =
-  'store' | 'woodcutter' | 'forester' | 'quarry' | 'workshop' | 'fisher' | 'farm' | 'mine';
+  | 'store'
+  | 'woodcutter'
+  | 'forester'
+  | 'quarry'
+  | 'workshop'
+  | 'fisher'
+  | 'farm'
+  | 'mine'
+  | 'military';
 
 export interface BuildingDef {
   type: BuildingType;
@@ -29,7 +37,7 @@ export interface BuildingDef {
   /** Ausgabe wird je Zyklus gewählt: Werkzeug nach Prioritätsliste bzw. Schwert/Schild im Wechsel. */
   outputChoice: 'tools' | 'weapons' | null;
   /** Menügruppe. */
-  group: 'basic' | 'food' | 'mining' | 'metal' | 'store';
+  group: 'basic' | 'food' | 'mining' | 'metal' | 'military' | 'store';
   /** Eingangspuffer pro Ware. */
   inputs: Partial<Record<WareType, number>>;
   cost: { planks: number; stone: number };
@@ -84,6 +92,9 @@ const MINE = (resource: ResourceId): DefExtra => ({ consumesAny: [...FOOD], reso
 
 export const BUILDINGS: Record<BuildingType, BuildingDef> = {
   hq: def('hq', 'large', 'store', 'store', null, null, { buildable: false }),
+  guardhut: def('guardhut', 'small', 'military', 'military', null, null),
+  watchtower: def('watchtower', 'medium', 'military', 'military', null, null),
+  fortress: def('fortress', 'large', 'military', 'military', null, null),
   storehouse: def('storehouse', 'medium', 'store', 'store', null, null),
   woodcutter: def('woodcutter', 'small', 'woodcutter', 'basic', 'woodcutter', 'wood'),
   forester: def('forester', 'small', 'forester', 'basic', 'forester', null),
@@ -158,8 +169,16 @@ export const BUILD_MENU: BuildingType[] = [
   'mint',
   'toolsmith',
   'weaponsmith',
+  'guardhut',
+  'watchtower',
+  'fortress',
   'storehouse',
 ];
+
+/** Gebäude, die Gebiet beanspruchen und Soldaten beherbergen (HQ zählt ebenfalls). */
+export function isMilitaryType(type: BuildingType): boolean {
+  return type === 'hq' || BUILDINGS[type].kind === 'military';
+}
 
 const SIZE_RANK: Record<BuildingSize, number> = { small: 1, medium: 2, large: 3, mine: 0 };
 

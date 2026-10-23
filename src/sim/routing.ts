@@ -211,7 +211,8 @@ export function routeWare(world: World, w: Ware, ctx: RouteContext = { fields: n
     const df = w.destFlag;
     field = fieldFor(world, ctx, `f${df}`, w.owner, () => [df]);
   } else {
-    const dest: Building | undefined = w.dest ? world.buildings[w.dest] : undefined;
+    let dest: Building | undefined = w.dest ? world.buildings[w.dest] : undefined;
+    if (dest && dest.owner !== w.owner) dest = undefined;
     if (w.dest && !dest) w.dest = 0;
     if (dest) {
       if (dest.flag === w.flag) {

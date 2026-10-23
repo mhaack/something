@@ -148,8 +148,6 @@ export const TRANSPORT = {
 } as const;
 
 export const STORE = {
-  /** Gebietsradius des Hauptquartiers (bis zum Territoriumssystem in Phase 6). */
-  HQ_RADIUS: 9,
   /** Ticks zwischen zwei Waren, die ein Lager auf seine Flagge legt. */
   OUTPUT_TICKS: 10,
   /** Ein neuer Träger entsteht im Lager alle n Ticks. */
@@ -280,6 +278,9 @@ export const BUILDING_VALUES = {
     restTicks: 40,
     inputs: { iron: 4, coal: 4 },
   },
+  guardhut: { planks: 2, stone: 1, radius: 6, workTicks: 0, restTicks: 0, inputs: { coins: 2 } },
+  watchtower: { planks: 3, stone: 4, radius: 9, workTicks: 0, restTicks: 0, inputs: { coins: 2 } },
+  fortress: { planks: 5, stone: 7, radius: 12, workTicks: 0, restTicks: 0, inputs: { coins: 4 } },
   coalmine: MINE_VALUES,
   ironmine: MINE_VALUES,
   goldmine: MINE_VALUES,
@@ -335,4 +336,28 @@ export const STATS = {
   SAMPLE_INTERVAL_TICKS: 600,
   /** Gespeicherte Stichproben (120 × 30 s = 1 Stunde Spielzeit). */
   MAX_SAMPLES: 120,
+} as const;
+
+export const MILITARY = {
+  /** Soldaten je Militärgebäude. */
+  CAPACITY: { guardhut: 2, watchtower: 5, fortress: 9 },
+  /** Einflussradius des Hauptquartiers (Militärgebäude: `radius` in BUILDING_VALUES). */
+  HQ_RADIUS: 9,
+  /** Startsoldaten im HQ (Ränge 0–4). */
+  START_SOLDIERS: [0, 0, 0, 0, 0, 0, 1, 1, 2, 3],
+  /** Höchster Rang (Ränge 0..MAX_RANK). */
+  MAX_RANK: 4,
+  /** Lebenspunkte und Angriffsstärke je Rang. */
+  HP: [3, 4, 5, 6, 8],
+  ATTACK: [10, 12, 15, 19, 24],
+  /** Ticks je Schlagabtausch im Zweikampf. */
+  DUEL_ROUND_TICKS: 16,
+  /** Ein Militärgebäude befördert mit einer Münze alle n Ticks einen Soldaten. */
+  PROMOTION_TICKS: 400,
+  /** Angreifer kommen aus eigenen Militärgebäuden in diesem Radius um das Ziel. */
+  ATTACK_RADIUS: 16,
+  /** Jedes Militärgebäude behält beim Angriff mindestens so viele Soldaten. */
+  KEEP_SOLDIERS: 1,
+  /** Brenndauer eines zerstörten Gebäudes (nur Anzeige). */
+  FIRE_TICKS: 400,
 } as const;

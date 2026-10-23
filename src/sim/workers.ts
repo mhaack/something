@@ -15,6 +15,7 @@ import { isTreeSpot } from './mapgen';
 import { nextInt } from './rng';
 import { freePath } from './routing';
 import { flagLoad, newSettler } from './store';
+import { standSoldier } from './military';
 import { chooseTool, hasToolOrders, recordConsumed, recordProduced } from './economy';
 import { isMatureField, isMatureTree, plantTree, removeObject, sowField } from './trees';
 import { isPassable } from './map';
@@ -27,6 +28,7 @@ function home(world: World, s: Settler): Building | undefined {
 
 export function standWorker(world: World, s: Settler): void {
   if (s.job === 'geologist') return standGeologist(world, s);
+  if (s.job === 'soldier') return standSoldier(world, s);
   const b = home(world, s);
   if (!b) return releaseWorker(world, s.id);
   switch (s.state) {
