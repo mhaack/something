@@ -5,7 +5,15 @@
  */
 import { MAP } from '../data/balance';
 import { Terrain } from '../data/terrain';
-import { Dir, TRI_DOWN, TRI_UP, neighbor, triangleIfExists, triangleNodes } from '../sim/geometry';
+import {
+  Dir,
+  TRI_DOWN,
+  TRI_UP,
+  neighbor,
+  triangleIfExists,
+  triangleNodes,
+  trianglesAround,
+} from '../sim/geometry';
 import type { GameMap } from '../sim/map';
 import { hash2 } from '../sim/rng';
 import { nodeWorldX, nodeWorldY } from './camera';
@@ -35,23 +43,40 @@ function texel(t: number, wx: number, wy: number): number {
   switch (t) {
     case Terrain.Water: {
       const wave = hash2(wx >> 3, wy, 17);
-      return wave > 0.86 ? 0.9 : wave < 0.08 ? -0.6 : 0;
+      return wave > 0.86 ? 0.8 : wave < 0.1 ? -0.6 : 0;
     }
     case Terrain.Mountain: {
-      const streak = hash2((wx + (wy >> 1)) >> 2, wy >> 2, 23);
-      return (streak - 0.5) * 1.4 + (r > 0.9 ? 0.6 : 0);
+      // Gesteinsschichten schräg über den Hang plus Körnung
+      const strata = hash2((wx + wy * 2) >> 3, (wy - wx) >> 4, 23);
+      const crack = hash2(wx >> 1, wy, 29) > 0.94 ? -1.1 : 0;
+      return (strata - 0.5) * 1.2 + (r > 0.9 ? 0.6 : r < 0.06 ? -0.6 : 0) + crack;
     }
     case Terrain.Snow:
-      return r > 0.92 ? -0.6 : 0;
-    case Terrain.Desert:
-      return (wx + 2 * wy) % 9 === 0 ? 0.6 : r > 0.93 ? -0.5 : 0;
-    case Terrain.Swamp:
-      return r > 0.8 ? -1 : r < 0.1 ? 0.8 : 0;
-    default:
-      // Wiese: Grashalme
-      return r > 0.88 ? 0.9 : r < 0.08 ? -0.9 : 0;
+      return r > 0.93 ? -0.7 : r < 0.03 ? 0.5 : 0;
+    case Terrain.Desert: {
+      const ripple = (wx + 2 * wy + ((hash2(wx >> 4, wy >> 3, 5) * 6) | 0)) % 9 === 0;
+      return ripple ? 0.7 : r > 0.94 ? -0.6 : 0;
+    }
+    case Terrain.Swamp: {
+      const pool = hash2(wx >> 2, wy >> 1, 41) > 0.8 ? -1.2 : 0;
+      return pool + (r > 0.85 ? 0.8 : 0);
+    }
+    default: {
+      // Wiese: Grashalme (2 Pixel hoch, unten dunkel) und Körnung
+      const blade = hash2(wx, wy >> 1, 101 + t);
+      if (blade > 0.93) return (wy & 1) === 0 ? 1.1 : -0.4;
+      return r > 0.9 ? 0.5 : r < 0.07 ? -0.8 : 0;
+    }
   }
 }
+
+/** Sand am Ufer und Schaum am Wasserrand. */
+const BEACH_RAMP = TERRAIN_RAMPS[Terrain.Desert];
+const FOAM: [number, number, number] = [150, 190, 228];
+/** Breite der Übergangszone in baryzentrischen Einheiten. */
+const BLEND = 0.24;
+const BEACH = 0.13;
+const FOAM_WIDTH = 0.07;
 
 export interface RasterTarget {
   data: Uint8ClampedArray;
@@ -68,7 +93,24 @@ interface Vtx {
   l: number;
 }
 
-function fillTriangle(target: RasterTarget, a: Vtx, b: Vtx, c: Vtx, terrain: number): void {
+function shadeIndex(t: number, light: number, wx: number, wy: number, top: number): number {
+  const dither = BAYER4[((wy & 3) << 2) | (wx & 3)];
+  const idx = Math.floor(light * top + texel(t, wx, wy) + dither - 0.25);
+  return idx < 0 ? 0 : idx > top ? top : idx;
+}
+
+/**
+ * Füllt ein Dreieck. `nbr[k]` ist das Terrain jenseits der Kante gegenüber Ecke k (-1 = keins):
+ * nahe einer Kante zu anderem Terrain wird gedithert überblendet, an Küsten entstehen Sand und Schaum.
+ */
+function fillTriangle(
+  target: RasterTarget,
+  a: Vtx,
+  b: Vtx,
+  c: Vtx,
+  terrain: number,
+  nbr: readonly number[],
+): void {
   const ramp = TERRAIN_RAMPS[terrain];
   const top = ramp.length - 1;
   const ox = target.originX;
@@ -87,7 +129,8 @@ function fillTriangle(target: RasterTarget, a: Vtx, b: Vtx, c: Vtx, terrain: num
   const maxY = Math.min(target.height - 1, Math.ceil(Math.max(ay, by, cy)));
   const inv = 1 / area;
   const data = target.data;
-  const flat = terrain === Terrain.Water;
+  const isWater = terrain === Terrain.Water;
+  const anyEdge = nbr.some((t) => t >= 0 && t !== terrain);
   for (let py = minY; py <= maxY; py++) {
     const sy = py + 0.5;
     for (let px = minX; px <= maxX; px++) {
@@ -99,14 +142,39 @@ function fillTriangle(target: RasterTarget, a: Vtx, b: Vtx, c: Vtx, terrain: num
       if (w0 < 0) w0 = 0;
       if (w1 < 0) w1 = 0;
       if (w2 < 0) w2 = 0;
-      const light = flat ? 0.55 : a.l * w0 + b.l * w1 + c.l * w2;
       const wx = px + ox;
       const wy = py + oy;
-      const dither = BAYER4[((wy & 3) << 2) | (wx & 3)];
-      let idx = Math.floor(light * top + texel(terrain, wx, wy) + dither - 0.25);
-      if (idx < 0) idx = 0;
-      else if (idx > top) idx = top;
-      const col = ramp[idx];
+      const light = isWater ? 0.55 : a.l * w0 + b.l * w1 + c.l * w2;
+      let col = ramp[shadeIndex(terrain, light, wx, wy, top)];
+      if (anyEdge) {
+        // Nächste Kante bestimmen
+        let k = 0;
+        let wk = w0;
+        if (w1 < wk) {
+          k = 1;
+          wk = w1;
+        }
+        if (w2 < wk) {
+          k = 2;
+          wk = w2;
+        }
+        const other = nbr[k];
+        if (other >= 0 && other !== terrain && wk < BLEND) {
+          const h = hash2(wx, wy, 977);
+          const otherWater = other === Terrain.Water;
+          if (!isWater && otherWater && wk < BEACH && terrain !== Terrain.Snow) {
+            if (h < 1 - wk / BEACH + 0.25) {
+              col =
+                BEACH_RAMP[shadeIndex(Terrain.Desert, light + 0.1, wx, wy, BEACH_RAMP.length - 1)];
+            }
+          } else if (isWater && !otherWater) {
+            if (wk < FOAM_WIDTH && h < 1 - wk / FOAM_WIDTH) col = FOAM;
+          } else if (!isWater && !otherWater && h < 0.5 * (1 - wk / BLEND)) {
+            const oramp = TERRAIN_RAMPS[other];
+            col = oramp[shadeIndex(other, light, wx, wy, oramp.length - 1)];
+          }
+        }
+      }
       const o = (py * target.width + px) * 4;
       data[o] = col[0];
       data[o + 1] = col[1];
@@ -114,6 +182,16 @@ function fillTriangle(target: RasterTarget, a: Vtx, b: Vtx, c: Vtx, terrain: num
       data[o + 3] = 255;
     }
   }
+}
+
+/** Terrain des Nachbardreiecks über die Kante (n1, n2), -1 wenn keins. */
+function terrainAcross(map: GameMap, tri: number, n1: number, n2: number): number {
+  for (const t of trianglesAround(map, n1)) {
+    if (t < 0 || t === tri) continue;
+    const ns = triangleNodes(map, t);
+    if (ns[0] === n2 || ns[1] === n2 || ns[2] === n2) return map.terrain[t];
+  }
+  return -1;
 }
 
 function vertex(map: GameMap, light: Float32Array, i: number): Vtx {
@@ -141,12 +219,18 @@ export function rasterizeNodes(
         const tri = triangleIfExists(map, i, kind);
         if (tri < 0) continue;
         const [a, b, c] = triangleNodes(map, tri);
+        const nbr = [
+          terrainAcross(map, tri, b, c),
+          terrainAcross(map, tri, c, a),
+          terrainAcross(map, tri, a, b),
+        ];
         fillTriangle(
           target,
           vertex(map, light, a),
           vertex(map, light, b),
           vertex(map, light, c),
           map.terrain[tri],
+          nbr,
         );
       }
     }

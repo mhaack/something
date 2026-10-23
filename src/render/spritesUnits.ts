@@ -14,44 +14,77 @@ function shade(c: RGB, f: number): RGB {
   ];
 }
 
+const WOOD: RGB[] = [
+  [52, 34, 18],
+  [78, 52, 28],
+  [104, 72, 40],
+  [132, 94, 54],
+];
+const GOLD: RGB = [236, 200, 80];
+
 /** Flagge mit wehendem Tuch, `frame` 0..3. */
 export function makeFlag(color: RGB, frame: number): Sprite {
-  const b = new PixelBuffer(12, 20);
-  b.rect(2, 1, 1, 18, [60, 44, 26]);
-  b.set(2, 0, [200, 180, 120]);
-  for (let x = 0; x < 7; x++) {
-    const wave = Math.round(Math.sin(((x + frame * 1.5) / 7) * Math.PI * 2) * 0.9);
-    for (let y = 0; y < 5; y++) {
-      const c = y === 0 || x === 6 ? shade(color, 0.7) : y === 1 ? shade(color, 1.2) : color;
-      b.set(3 + x, 1 + y + (x > 1 ? wave : 0), c);
+  const b = new PixelBuffer(16, 24);
+  const px = 3;
+  // Mast mit Licht links
+  for (let y = 2; y < 22; y++) {
+    b.set(px, y, WOOD[2]);
+    b.set(px + 1, y, WOOD[1]);
+  }
+  b.set(px, 1, GOLD);
+  b.set(px + 1, 1, shade(GOLD, 0.8));
+  b.set(px, 0, shade(GOLD, 1.1));
+  // Tuch: wehend, mit Verlauf und Falten
+  const cw = 9;
+  const ch = 6;
+  for (let x = 0; x < cw; x++) {
+    const phase = ((x + frame * 2.2) / cw) * Math.PI * 2;
+    const wave = Math.round(Math.sin(phase) * (x / cw) * 1.6);
+    const fold = Math.cos(phase);
+    for (let y = 0; y < ch; y++) {
+      let f = 1 + fold * 0.18 - (y / ch) * 0.15;
+      if (y === 0) f += 0.15;
+      if (x === cw - 1) f -= 0.2;
+      b.set(px + 2 + x, 2 + y + wave, shade(color, f));
     }
   }
   b.outline(OUTLINE);
-  return b.toSprite(2, 19);
+  // Fußsteine
+  b.set(px - 1, 22, [110, 104, 96]);
+  b.set(px + 2, 22, [130, 124, 116]);
+  b.set(px, 22, [90, 86, 80]);
+  b.shadow(px + 4, 22, 4, 1.4, 80);
+  return b.toSprite(px, 22);
 }
 
 /** Grenzpfahl in Spielerfarbe. */
 export function makeBorderPost(color: RGB): Sprite {
-  const b = new PixelBuffer(5, 8);
-  b.rect(1, 2, 3, 5, [110, 100, 90]);
-  b.rect(1, 1, 3, 2, color);
+  const b = new PixelBuffer(6, 10);
+  b.rect(2, 3, 2, 6, WOOD[2]);
+  b.rect(3, 3, 1, 6, WOOD[1]);
+  b.rect(1, 1, 4, 3, color);
+  b.rect(1, 1, 4, 1, shade(color, 1.3));
   b.outline(OUTLINE);
-  return b.toSprite(2, 7);
+  b.shadow(4, 9, 2, 1, 70);
+  return b.toSprite(2, 9);
 }
 
 const STONE: RGB[] = [
-  [86, 80, 74],
-  [112, 106, 98],
-  [138, 132, 122],
-  [164, 158, 146],
+  [70, 64, 60],
+  [96, 90, 84],
+  [122, 116, 108],
+  [148, 142, 132],
+  [172, 166, 154],
 ];
 const ROOF: RGB[] = [
-  [96, 34, 24],
-  [128, 46, 30],
-  [158, 62, 38],
-  [186, 84, 52],
+  [78, 28, 20],
+  [110, 40, 28],
+  [142, 56, 36],
+  [172, 76, 48],
+  [196, 100, 64],
 ];
 
+/** Mauer aus versetzten Quadern; `curve` > 0 schattiert zylindrisch (Turm). */
 function stoneWall(
   b: PixelBuffer,
   x0: number,
@@ -59,126 +92,266 @@ function stoneWall(
   w: number,
   h: number,
   seed: number,
+  curve = 0,
 ): void {
   for (let y = y0; y < y0 + h; y++) {
+    const row = Math.floor((y - y0) / 4);
+    const off = (row % 2) * 3;
     for (let x = x0; x < x0 + w; x++) {
-      const row = Math.floor((y - y0) / 3);
-      const brick = Math.floor((x - x0 + (row % 2) * 2) / 4);
-      const mortar = (y - y0) % 3 === 2 || (x - x0 + (row % 2) * 2) % 4 === 3;
-      const side = (x - x0) / w;
-      let l = 2 - Math.floor(side * 1.6) + (hash2(brick, row, seed) > 0.7 ? 1 : 0);
-      if (mortar) l = 0;
-      b.set(x, y, STONE[Math.max(0, Math.min(3, l))]);
+      const bx = Math.floor((x - x0 + off) / 6);
+      const mortarY = (y - y0) % 4 === 3;
+      const mortarX = (x - x0 + off) % 6 === 5;
+      const t = (x - x0 + 0.5) / w; // 0 links .. 1 rechts
+      let l = curve ? 3.2 - Math.pow(Math.abs(t - 0.3) * 1.6, 1.5) * 2.4 : 3 - t * 1.6;
+      l += (hash2(bx, row, seed) - 0.5) * 1.1;
+      if (mortarY || mortarX) l -= 1.4;
+      b.set(x, y, STONE[Math.max(0, Math.min(4, Math.round(l)))]);
     }
   }
 }
 
-function roof(b: PixelBuffer, cx: number, top: number, halfW: number, h: number): void {
+/** Kegeldach mit Ziegelreihen. */
+function coneRoof(b: PixelBuffer, cx: number, top: number, halfW: number, h: number): void {
   for (let j = 0; j < h; j++) {
     const hw = Math.round((halfW * (j + 1)) / h);
     for (let x = cx - hw; x <= cx + hw; x++) {
       const side = (x - cx) / Math.max(1, hw);
-      const l = side < -0.2 ? 3 : side < 0.3 ? 2 : 1;
-      b.set(x, top + j, ROOF[(j % 3 === 2 ? l - 1 : l) as 0 | 1 | 2 | 3] ?? ROOF[0]);
+      let l = side < -0.4 ? 4 : side < 0 ? 3 : side < 0.5 ? 2 : 1;
+      if (j % 3 === 2) l -= 1;
+      if ((x + (((j / 3) | 0) % 2) * 2) % 4 === 0 && j % 3 !== 2) l -= 1;
+      b.set(x, top + j, ROOF[Math.max(0, l)]);
     }
   }
 }
 
-/** Hauptquartier: Burg mit zwei Türmen, Tor und Banner in Spielerfarbe. */
+/** Satteldach (Front) über dem Haupthaus. */
+function gableRoof(b: PixelBuffer, cx: number, top: number, halfW: number, h: number): void {
+  for (let j = 0; j < h; j++) {
+    const hw = Math.round(halfW * Math.min(1, (j + 2) / h));
+    for (let x = cx - hw; x <= cx + hw; x++) {
+      const side = (x - cx) / Math.max(1, hw);
+      let l = side < 0 ? 3 : 2;
+      if (j % 3 === 2) l -= 1;
+      if (Math.abs(x - cx) === hw) l = 0;
+      b.set(x, top + j, ROOF[Math.max(0, l)]);
+    }
+  }
+}
+
+function crenels(b: PixelBuffer, x0: number, x1: number, y: number): void {
+  for (let x = x0; x < x1; x += 4) {
+    b.rect(x, y - 3, 2, 3, STONE[3]);
+    b.set(x + 1, y - 3, STONE[2]);
+  }
+}
+
+function archWindow(b: PixelBuffer, x: number, y: number, w: number, h: number, lit = false): void {
+  const glass: RGB = lit ? [230, 190, 90] : [28, 26, 40];
+  b.rect(x, y + 1, w, h - 1, glass);
+  b.rect(x + 1, y, w - 2, 1, glass);
+  b.rect(x - 1, y + h, w + 2, 1, STONE[4]);
+  if (w >= 3) b.rect(x + (w >> 1), y + 1, 1, h - 1, STONE[1]);
+}
+
+/** Hauptquartier: Burg mit zwei Rundtürmen, Bergfried, Tor und Bannern in Spielerfarbe. */
 export function makeHQ(color: RGB): Sprite {
-  const w = 72;
-  const h = 70;
+  const w = 88;
+  const h = 84;
   const b = new PixelBuffer(w, h);
-  const base = h - 4;
+  const base = h - 6;
+  // Sockel
+  stoneWall(b, 6, base - 4, 76, 5, 9);
+  // Bergfried hinten
+  stoneWall(b, 30, base - 52, 28, 22, 4);
+  crenels(b, 30, 58, base - 52);
+  archWindow(b, 42, base - 46, 4, 6, true);
   // Haupthaus
-  stoneWall(b, 14, base - 30, 44, 30, 1);
-  roof(b, 36, base - 46, 24, 16);
+  stoneWall(b, 16, base - 32, 56, 30, 1);
+  gableRoof(b, 44, base - 44, 26, 13);
+  crenels(b, 16, 72, base - 32);
   // Türme
-  stoneWall(b, 4, base - 40, 14, 40, 2);
-  stoneWall(b, 54, base - 40, 14, 40, 3);
-  roof(b, 11, base - 52, 8, 12);
-  roof(b, 61, base - 52, 8, 12);
-  // Zinnen
-  for (let x = 14; x < 54; x += 4) b.rect(x, base - 33, 2, 3, STONE[2]);
-  // Tor
-  b.rect(30, base - 14, 12, 14, [40, 26, 14]);
-  b.rect(31, base - 13, 10, 13, [70, 46, 24]);
-  for (let y = base - 13; y < base; y += 3) b.rect(31, y, 10, 1, [52, 34, 18]);
-  // Fenster
-  for (const x of [9, 59]) b.rect(x, base - 28, 3, 5, [24, 20, 30]);
-  for (const x of [20, 48]) b.rect(x, base - 22, 4, 5, [24, 20, 30]);
-  // Banner
-  b.rect(36, base - 62, 1, 16, [60, 44, 26]);
-  b.rect(37, base - 61, 8, 5, color);
-  b.rect(37, base - 61, 8, 1, shade(color, 1.3));
+  stoneWall(b, 4, base - 44, 16, 44, 2, 1);
+  stoneWall(b, 68, base - 44, 16, 44, 3, 1);
+  coneRoof(b, 12, base - 60, 10, 16);
+  coneRoof(b, 76, base - 60, 10, 16);
+  for (const tx of [12, 76]) {
+    b.set(tx, base - 61, GOLD);
+    archWindow(b, tx - 1, base - 36, 3, 5);
+    archWindow(b, tx - 1, base - 22, 3, 5);
+  }
+  // Tor mit Bogen, Bohlen und Eisenbändern
+  const gx = 37;
+  const gw = 14;
+  const gy = base - 17;
+  for (let y = gy; y < base; y++) {
+    for (let x = gx; x < gx + gw; x++) {
+      const dx = x - (gx + gw / 2 - 0.5);
+      if (y < gy + 4 && dx * dx + (gy + 4 - y) * (gy + 4 - y) * 3 > 50) continue;
+      let c = WOOD[(x - gx) % 3 === 2 ? 0 : 2];
+      if ((y - gy) % 6 === 4) c = [50, 48, 52];
+      b.set(x, y, c);
+    }
+  }
+  b.rect(gx + gw - 3, gy + 9, 1, 2, GOLD);
+  for (const x of [gx - 2, gx + gw + 1]) b.rect(x, gy + 2, 1, base - gy - 2, STONE[0]);
+  // Fenster im Haupthaus
+  archWindow(b, 22, base - 24, 4, 6, true);
+  archWindow(b, 62, base - 24, 4, 6);
+  archWindow(b, 28, base - 26, 3, 5);
+  archWindow(b, 57, base - 26, 3, 5, true);
+  // Banner an der Front
+  for (const bx of [26, 58]) {
+    for (let y = 0; y < 12; y++) {
+      for (let x = 0; x < 5; x++) {
+        if (y >= 10 && x === 2) continue;
+        const f = x === 0 ? 1.25 : x === 4 ? 0.75 : 1;
+        b.set(bx + x, base - 30 + y, shade(color, f));
+      }
+    }
+    b.rect(bx - 1, base - 31, 7, 1, WOOD[1]);
+    b.set(bx + 2, base - 26, GOLD);
+  }
+  // Fahne auf dem Bergfried
+  b.rect(44, base - 70, 1, 18, WOOD[1]);
+  b.set(44, base - 71, GOLD);
+  for (let x = 0; x < 10; x++) {
+    const wave = Math.round(Math.sin((x / 10) * Math.PI * 2) * 0.8);
+    for (let y = 0; y < 5; y++)
+      b.set(45 + x, base - 69 + y + wave, shade(color, y === 0 ? 1.25 : 1));
+  }
+  // Efeu an der linken Turmseite
+  for (let k = 0; k < 14; k++) {
+    const x = 4 + ((hash2(k, 1, 5) * 5) | 0);
+    const y = base - 6 - ((hash2(k, 2, 5) * 22) | 0);
+    b.set(x, y, [50, 96, 34]);
+    b.set(x + 1, y, [70, 120, 42]);
+  }
   b.outline(OUTLINE);
-  return b.toSprite(40, base);
+  b.shadow(50, base, 40, 4, 100);
+  return b.toSprite(44, base);
 }
 
-/** Baustellen- und Gebäudeplatzhalter folgen in Phase 3. */
+const SKIN: RGB = [228, 180, 136];
+const SKIN_DARK: RGB = [190, 140, 100];
+const HAT: RGB = [200, 172, 96];
+const HAT_DARK: RGB = [150, 124, 64];
+const PANTS: RGB = [74, 64, 96];
+const PANTS_DARK: RGB = [54, 46, 72];
+const BOOTS: RGB = [52, 36, 22];
+const BELT: RGB = [96, 62, 30];
 
-const SKIN: RGB = [226, 178, 132];
-const HAIR: RGB = [92, 60, 30];
-const PANTS: RGB = [70, 62, 90];
-const SHOES: RGB = [40, 30, 20];
-
-/** Träger: 4 Laufphasen, nach rechts blickend. */
-export function makeCarrier(color: RGB, frame: number): Sprite {
-  const b = new PixelBuffer(10, 16);
-  const tunic = shade(color, 0.85);
-  const tunicLight = shade(color, 1.15);
-  const bob = frame % 2;
-  const top = 1 + bob;
+/**
+ * Träger (nach rechts blickend), 4 Laufphasen. Mit Last trägt er die Ware mit erhobenen Armen,
+ * ohne Last schwingen die Arme.
+ */
+export function makeCarrier(color: RGB, frame: number, loaded: boolean): Sprite {
+  const b = new PixelBuffer(13, 20);
+  const shirt = shade(color, 0.9);
+  const shirtLight = shade(color, 1.2);
+  const shirtDark = shade(color, 0.65);
+  const bob = frame % 2 === 1 ? 1 : 0;
+  const top = 2 + bob;
+  const cx = 6;
+  // Hut
+  b.rect(cx - 3, top + 1, 6, 1, HAT_DARK);
+  b.rect(cx - 2, top, 4, 1, HAT);
+  b.rect(cx - 1, top - 1, 3, 1, HAT);
   // Kopf
-  b.rect(4, top, 3, 1, HAIR);
-  b.rect(3, top + 1, 4, 3, SKIN);
-  b.set(3, top + 1, HAIR);
-  b.set(6, top + 2, [40, 30, 30]);
-  // Körper
-  b.rect(3, top + 4, 4, 5, tunic);
-  b.rect(3, top + 4, 1, 5, tunicLight);
-  // Arme nach oben (Last auf den Schultern)
-  b.set(2, top + 4, SKIN);
-  b.set(7, top + 4, SKIN);
-  // Beine
-  const legA = [0, 1, 0, -1][frame];
-  b.rect(3 + Math.max(0, legA), top + 9, 1, 4 - bob, PANTS);
-  b.rect(5 - Math.min(0, legA), top + 9, 1, 4 - bob, PANTS);
-  b.set(3 + Math.max(0, legA), 14, SHOES);
-  b.set(5 - Math.min(0, legA), 14, SHOES);
+  b.rect(cx - 2, top + 2, 4, 3, SKIN);
+  b.set(cx - 2, top + 2, SKIN_DARK);
+  b.set(cx + 1, top + 3, [40, 30, 30]); // Auge
+  b.set(cx + 2, top + 4, SKIN); // Nase
+  b.set(cx - 2, top + 4, [110, 70, 40]); // Haar hinten
+  // Rumpf
+  for (let y = 0; y < 6; y++) {
+    for (let x = -2; x <= 1; x++) {
+      const c = x === -2 ? shirtLight : x === 1 ? shirtDark : shirt;
+      b.set(cx + x, top + 5 + y, c);
+    }
+  }
+  b.rect(cx - 2, top + 9, 4, 1, BELT);
+  // Arme
+  if (loaded) {
+    b.rect(cx - 3, top + 3, 1, 3, shirtLight);
+    b.rect(cx + 2, top + 3, 1, 3, shirtDark);
+    b.set(cx - 3, top + 2, SKIN);
+    b.set(cx + 2, top + 2, SKIN);
+  } else {
+    const swing = [0, 1, 0, -1][frame];
+    b.rect(cx - 3, top + 5, 1, 3, shirtLight);
+    b.set(cx - 3 - swing, top + 8, SKIN);
+    b.rect(cx + 2, top + 5, 1, 3, shirtDark);
+    b.set(cx + 2 + swing, top + 8, SKIN);
+  }
+  // Beine (Schrittstellung je Phase)
+  const stride = [
+    [-1, 1],
+    [0, 0],
+    [1, -1],
+    [0, 0],
+  ][frame];
+  const legTop = top + 11;
+  const legLen = 5 - bob;
+  for (let y = 0; y < legLen; y++) {
+    const t = y / legLen;
+    b.set(cx - 1 + Math.round(stride[0] * t), legTop + y, PANTS);
+    b.set(cx + Math.round(stride[1] * t), legTop + y, PANTS_DARK);
+  }
+  b.set(cx - 1 + stride[0], legTop + legLen, BOOTS);
+  b.set(cx + stride[0], legTop + legLen, BOOTS);
+  b.set(cx + stride[1], legTop + legLen, BOOTS);
+  b.set(cx + 1 + stride[1], legTop + legLen, BOOTS);
   b.outline(OUTLINE);
-  return b.toSprite(5, 15);
+  b.shadow(cx + 1, 18, 4, 1.3, 80);
+  return b.toSprite(cx, 18);
 }
 
-/** Esel: 4 Laufphasen, nach rechts blickend. */
+/** Esel (nach rechts blickend), 4 Laufphasen. */
 export function makeDonkey(frame: number): Sprite {
-  const b = new PixelBuffer(18, 14);
-  const body: RGB = [128, 118, 108];
-  const dark: RGB = [96, 88, 80];
-  const light: RGB = [162, 152, 140];
-  b.ellipse(8, 7, 6, 3, (_dx, dy) => (dy < -0.3 ? light : body));
-  // Kopf und Ohren
-  b.rect(13, 3, 3, 4, body);
-  b.rect(15, 5, 2, 2, light);
-  b.set(13, 1, dark);
-  b.set(13, 2, dark);
-  b.set(14, 2, dark);
-  // Packtaschen
-  b.rect(5, 6, 5, 3, [120, 80, 40]);
+  const b = new PixelBuffer(22, 17);
+  const body: RGB = [132, 122, 112];
+  const dark: RGB = [92, 84, 78];
+  const light: RGB = [168, 158, 146];
+  const belly: RGB = [190, 182, 170];
+  const by = 8;
+  // Rumpf
+  b.ellipse(9, by, 6.5, 3.4, (_dx, dy) => (dy > 0.45 ? belly : dy < -0.35 ? light : body));
+  // Hals, Kopf, Maul, Ohren, Mähne
+  b.rect(14, by - 4, 3, 4, body);
+  b.rect(15, by - 5, 4, 3, body);
+  b.rect(18, by - 4, 2, 2, belly);
+  b.set(19, by - 3, dark);
+  b.set(16, by - 4, [20, 20, 20]);
+  b.set(15, by - 7, dark);
+  b.set(15, by - 6, body);
+  b.set(16, by - 7, dark);
+  b.set(16, by - 6, light);
+  for (let x = 13; x <= 15; x++) b.set(x, by - 4 + (15 - x), dark);
+  // Packsattel
+  b.rect(6, by - 3, 6, 2, [140, 40, 30]);
+  b.rect(5, by - 1, 3, 4, [128, 86, 44]);
+  b.rect(11, by - 1, 2, 4, [104, 70, 36]);
   // Beine
   const offs = [
     [0, 1, 1, 0],
     [1, 0, 0, 1],
-    [0, 1, 1, 0],
-    [1, 0, 0, 1],
+    [0, -1, -1, 0],
+    [-1, 0, 0, -1],
   ][frame];
-  [4, 6, 10, 12].forEach((x, k) => b.rect(x + offs[k], 9, 1, 4, dark));
+  [4, 6, 11, 13].forEach((x, k) => {
+    for (let y = 0; y < 4; y++) b.set(x + (y > 1 ? offs[k] : 0), by + 3 + y, k % 2 ? dark : body);
+    b.set(x + offs[k], by + 7, [40, 34, 30]);
+  });
   // Schwanz
-  b.set(2, 6, dark);
-  b.set(1, 7, dark);
+  b.set(2, by - 1, dark);
+  b.set(1, by, dark);
+  b.set(1, by + 1, [60, 54, 50]);
   b.outline(OUTLINE);
-  return b.toSprite(8, 13);
+  b.shadow(10, by + 8, 7, 1.5, 80);
+  return b.toSprite(9, by + 7);
 }
+
+/** Baustellen- und Gebäudeplatzhalter folgen in Phase 3. */
 
 /** Spiegelt ein Sprite horizontal (für Blickrichtung links). */
 export function mirror(s: Sprite): Sprite {
@@ -240,6 +413,91 @@ const WARE_LOOK: Record<WareType, [WareShape, RGB]> = {
   tongs: ['tool', [120, 120, 130]],
   crucible: ['tool', [180, 110, 70]],
 };
+
+const HANDLE: RGB = [120, 84, 46];
+const HANDLE_LIGHT: RGB = [160, 118, 70];
+
+/** Werkzeuge einzeln erkennbar zeichnen (9×8 Pixel). */
+function drawTool(b: PixelBuffer, type: WareType, c: RGB, l: RGB, d: RGB): void {
+  const handle = (x0: number, y0: number, x1: number, y1: number): void => {
+    const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+    for (let k = 0; k <= n; k++) {
+      const x = Math.round(x0 + ((x1 - x0) * k) / n);
+      const y = Math.round(y0 + ((y1 - y0) * k) / n);
+      b.set(x, y, k % 2 ? HANDLE : HANDLE_LIGHT);
+    }
+  };
+  switch (type) {
+    case 'hammer':
+      handle(1, 6, 5, 2);
+      b.rect(4, 0, 4, 2, c);
+      b.set(4, 0, l);
+      b.set(7, 1, d);
+      break;
+    case 'shovel':
+      handle(1, 1, 5, 5);
+      b.rect(5, 4, 3, 3, c);
+      b.set(5, 4, l);
+      b.set(7, 6, d);
+      break;
+    case 'axe':
+      handle(1, 7, 5, 1);
+      b.rect(5, 0, 3, 3, c);
+      b.set(7, 0, l);
+      b.set(7, 3, d);
+      break;
+    case 'saw':
+      b.rect(1, 3, 6, 2, c);
+      b.rect(1, 3, 6, 1, l);
+      for (let x = 1; x < 7; x += 2) b.set(x, 5, d);
+      b.rect(7, 2, 2, 3, HANDLE);
+      break;
+    case 'pick':
+      handle(4, 7, 4, 2);
+      for (let x = 1; x < 8; x++) b.set(x, 1 + (x === 1 || x === 7 ? 1 : 0), x < 4 ? l : c);
+      break;
+    case 'rod':
+      handle(1, 7, 7, 0);
+      b.set(8, 1, [220, 220, 220]);
+      b.set(8, 2, [220, 220, 220]);
+      b.set(8, 3, [200, 40, 30]);
+      break;
+    case 'scythe':
+      handle(2, 7, 4, 1);
+      for (let x = 4; x < 9; x++) b.set(x, 1 + ((x - 4) >> 1), x === 4 ? l : c);
+      break;
+    case 'cleaver':
+      b.rect(1, 1, 5, 4, c);
+      b.rect(1, 1, 5, 1, l);
+      b.set(1, 4, d);
+      handle(6, 3, 8, 3);
+      break;
+    case 'rollingpin':
+      b.rect(2, 3, 5, 3, c);
+      b.rect(2, 3, 5, 1, l);
+      b.set(1, 4, HANDLE);
+      b.set(7, 4, HANDLE);
+      b.set(0, 4, HANDLE);
+      b.set(8, 4, HANDLE);
+      break;
+    case 'tongs':
+      handle(1, 7, 4, 3);
+      handle(3, 7, 4, 3);
+      b.set(5, 2, c);
+      b.set(6, 1, c);
+      b.set(5, 1, l);
+      b.set(7, 1, d);
+      break;
+    case 'crucible':
+      b.rect(2, 2, 5, 5, c);
+      b.rect(2, 2, 5, 1, l);
+      b.rect(3, 3, 3, 1, [240, 160, 40]);
+      b.set(6, 6, d);
+      break;
+    default:
+      handle(1, 6, 6, 1);
+  }
+}
 
 /** Kleines Warensymbol (ca. 7×6 Pixel), Anker unten Mitte. */
 export function makeWare(type: WareType): Sprite {
@@ -313,9 +571,7 @@ export function makeWare(type: WareType): Sprite {
       b.rect(4, 1, 1, 5, [220, 200, 120]);
       break;
     case 'tool':
-      b.rect(1, 5, 6, 1, [120, 84, 46]);
-      b.rect(6, 3, 2, 3, c);
-      b.set(6, 3, l);
+      drawTool(b, type, c, l, d);
       break;
   }
   b.outline(OUTLINE);

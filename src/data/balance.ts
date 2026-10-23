@@ -81,8 +81,10 @@ export const TERRAIN_RULES = {
 
 export const VIEW = {
   /** Ziel-Basisbreiten der Zoomstufen in Pixeln (ganzzahlige Skalierung wird daraus berechnet). */
-  ZOOM_BASE_WIDTHS: [640, 480, 320] as const,
+  ZOOM_BASE_WIDTHS: [960, 640, 480, 320] as const,
   DEFAULT_ZOOM: 1,
+  /** Randscrollen: Breite der Randzone in CSS-Pixeln. */
+  EDGE_SCROLL_MARGIN: 6,
   /** Scrollgeschwindigkeit der Tastatur in Basispixeln pro Sekunde. */
   KEY_SCROLL_SPEED: 360,
   /** Chunkgröße des Terrain-Caches in Knoten. */

@@ -1,9 +1,10 @@
 import { MAP, TRANSPORT, VIEW } from '../data/balance';
-import { MapObject } from '../data/terrain';
+import { MapObject, Terrain } from '../data/terrain';
 import type { Settler } from '../sim/entities';
 import { canPlaceFlag } from '../sim/flags';
 import { DIRS, neighbor } from '../sim/geometry';
 import { slopeClass } from '../sim/roads';
+import { hash2 } from '../sim/rng';
 import { plannedRoute, waitingFor } from '../sim/routing';
 import type { World } from '../sim/world';
 import { nodeWorldX, nodeWorldY, type Camera } from './camera';
@@ -12,6 +13,7 @@ import { PLAYER_COLORS } from './palette';
 import {
   FLAG_FRAMES,
   ROCK_SIZES,
+  TREE_FRAMES,
   WALK_FRAMES,
   buildSprites,
   type Sprite,
@@ -43,6 +45,8 @@ export interface RenderOptions {
   debug: boolean;
   selectedWare: number;
   selectedNode: number;
+  /** Knoten für eine halbtransparente Vorschauflagge (-1 = keine). */
+  ghostFlag: number;
 }
 
 /** Ablageplätze der Waren um den Flaggenmast (relativ zum Knoten). */
@@ -113,6 +117,7 @@ export class Renderer {
     const camX = Math.round(cam.x);
     const camY = Math.round(cam.y);
     this.drawTerrain(cam, camX, camY);
+    this.drawWater(cam, camX, camY, opts.animMs);
     this.drawRoads(cam, camX, camY, opts);
     if (opts.roadPreview) this.drawRoadPreview(camX, camY, opts.roadPreview);
     this.drawScene(cam, camX, camY, opts);
@@ -289,8 +294,17 @@ export class Renderer {
           this.blit(this.sprites.borderPosts[world.players[owner].color], sx, sy);
         }
         const obj = map.objects[i];
+        if (obj === MapObject.None && !world.nodeRoad[i] && !world.nodeFlag[i]) {
+          if (!world.nodeBuilding[i]) this.drawDecoration(i, x, y, sx, sy);
+        }
+        if (i === opts.ghostFlag) {
+          this.ctx.globalAlpha = 0.55;
+          this.blit(this.sprites.flags[world.players[opts.player].color][0], sx, sy);
+          this.ctx.globalAlpha = 1;
+        }
         if (obj === MapObject.Tree) {
-          this.blit(this.sprites.trees[map.objectData[i] & 3], sx, sy);
+          const phase = Math.floor(opts.animMs / 420 + hash2(x, y, 3) * TREE_FRAMES) % TREE_FRAMES;
+          this.blit(this.sprites.trees[map.objectData[i] & 3][phase], sx, sy);
           objects++;
         } else if (obj === MapObject.Rock) {
           const size = Math.min(
@@ -359,8 +373,9 @@ export class Renderer {
       if (ware) this.blit(this.sprites.wares[ware.type], x - (facingLeft ? -1 : 1), y - 7);
     } else {
       const color = this.world.players[s.owner].color;
-      this.blit(this.sprites.carriers[color][dir][frame], x, y);
-      if (ware) this.blit(this.sprites.wares[ware.type], x, y - 13 + (frame % 2));
+      const set = ware ? this.sprites.carriers : this.sprites.carriersEmpty;
+      this.blit(set[color][dir][frame], x, y);
+      if (ware) this.blit(this.sprites.wares[ware.type], x, y - 15 + (frame % 2));
     }
     return 1;
   }
@@ -374,13 +389,75 @@ export class Renderer {
     ctx.fillRect(sx, sy - 6, 3, 2);
   }
 
+  /** Rautenförmige Knotenmarkierung mit dunklem Schatten. */
   private drawCursor(sx: number, sy: number, selected: boolean): void {
     const ctx = this.ctx;
-    ctx.fillStyle = selected ? '#f0d040' : '#fff';
-    ctx.fillRect(sx - 3, sy, 7, 1);
-    ctx.fillRect(sx, sy - 2, 1, 5);
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.fillRect(sx - 1, sy - 1, 3, 3);
+    const pts: [number, number][] = [];
+    for (let k = 0; k <= 6; k++) pts.push([sx - 6 + k, sy - (k >> 1)], [sx - 6 + k, sy + (k >> 1)]);
+    for (let k = 0; k <= 6; k++) pts.push([sx + k, sy - 3 + (k >> 1)], [sx + k, sy + 3 - (k >> 1)]);
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    for (const [x, y] of pts) ctx.fillRect(x, y + 1, 1, 1);
+    ctx.fillStyle = selected ? '#f8d848' : '#ffffff';
+    for (const [x, y] of pts) ctx.fillRect(x, y, 1, 1);
+  }
+
+  /** Kleine Zierelemente (Gras, Blumen, Steine) – rein optisch, aus Knotenhash abgeleitet. */
+  private drawDecoration(i: number, x: number, y: number, sx: number, sy: number): void {
+    const map = this.world.map;
+    const d = hash2(x, y, 4242);
+    if (d > 0.3) return;
+    const t = map.terrain[2 * i];
+    let kind = -1;
+    if (t >= Terrain.Meadow1 && t <= Terrain.Meadow3) {
+      kind =
+        d < 0.16
+          ? d < 0.08
+            ? 0
+            : 1
+          : d < 0.24
+            ? 2 + (((d * 1000) % 3) | 0)
+            : d < 0.27
+              ? 6
+              : d < 0.28
+                ? 7
+                : -1;
+    } else if (t === Terrain.Mountain) kind = d < 0.14 ? 5 : -1;
+    else if (t === Terrain.Desert) kind = d < 0.1 ? 8 : d < 0.14 ? 5 : -1;
+    else if (t === Terrain.Swamp) kind = d < 0.2 ? 9 : -1;
+    if (kind < 0) return;
+    const ox = Math.round((hash2(x, y, 77) - 0.5) * 18);
+    const oy = Math.round((hash2(x, y, 78) - 0.5) * 8);
+    this.blit(this.sprites.decorations[kind], sx + ox, sy + oy + 2);
+  }
+
+  /** Animierte Lichtreflexe auf offenem Wasser. */
+  private drawWater(cam: Camera, camX: number, camY: number, animMs: number): void {
+    const map = this.world.map;
+    const ctx = this.ctx;
+    const y0 = Math.max(0, Math.floor(camY / TH) - 1);
+    const y1 = Math.min(map.height - 1, Math.ceil((camY + cam.height) / TH) + 1);
+    const x0 = Math.max(0, Math.floor(camX / TW) - 1);
+    const x1 = Math.min(map.width - 1, Math.ceil((camX + cam.width) / TW) + 1);
+    const t = animMs / 1000;
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0; x <= x1; x++) {
+        const i = y * map.width + x;
+        if (map.terrain[2 * i] !== Terrain.Water || map.terrain[2 * i + 1] !== Terrain.Water)
+          continue;
+        const [sx, sy] = this.nodePos(i, camX, camY);
+        for (let k = 0; k < 3; k++) {
+          const h = hash2(x * 2 + k, y, 555);
+          const period = 2.5 + h * 2.5;
+          const phase = (t / period + h) % 1;
+          if (phase > 0.45) continue;
+          const len = phase < 0.1 ? 2 : phase < 0.25 ? 4 : 2;
+          const px = sx + Math.round(hash2(x, y * 2 + k, 556) * 28) + 2;
+          const py = sy + Math.round(hash2(x * 3 + k, y, 557) * 14) + 1 + Math.round(phase * 3);
+          ctx.fillStyle = phase < 0.3 ? 'rgba(200,226,250,0.85)' : 'rgba(150,190,230,0.6)';
+          ctx.fillRect(px - (len >> 1), py, len, 1);
+        }
+      }
+    }
   }
 
   private drawCongestion(camX: number, camY: number): void {
