@@ -128,7 +128,11 @@ export type SettlerState =
   | 'enterHome'
   | 'producing'
   | 'leveling'
-  | 'building';
+  | 'building'
+  // Geologe
+  | 'geoTravel'
+  | 'geoWalk'
+  | 'geoWork';
 
 export interface Settler {
   id: number;
@@ -161,6 +165,20 @@ export interface Settler {
   home: number;
   /** Zielknoten außerhalb (Baum, Fels, Pflanzplatz), -1 = keiner. */
   targetNode: number;
+  /** Restzähler (z. B. verbleibende Probebohrungen des Geologen). */
+  count: number;
+}
+
+/** Schild des Geologen: gefundener Bodenschatz an einem Knoten. */
+export interface Sign {
+  node: number;
+  owner: number;
+  /** Resource-ID (0 = nichts gefunden). */
+  resource: number;
+  /** 0 = wenig, 1 = viel. */
+  rich: number;
+  /** Tick, bis zu dem das Schild steht. */
+  until: number;
 }
 
 export interface PlayerLedger {

@@ -3,9 +3,9 @@
  * Steinmetz, Werkstätten). Arbeiter laufen über Straßen zur Arbeitsstätte und am Ziel frei durchs
  * Gelände zu Bäumen, Felsen und Pflanzplätzen.
  */
-import { BUILD, TRANSPORT } from '../data/balance';
+import { BUILD, GEOLOGIST, TRANSPORT } from '../data/balance';
 import { BUILDINGS } from '../data/buildings';
-import { MapObject } from '../data/terrain';
+import { MapObject, Resource } from '../data/terrain';
 import type { WareType } from '../data/wares';
 import { findConsumer, releaseWorker } from './buildings';
 import { putOnFlag } from './carriers';
@@ -15,7 +15,8 @@ import { isTreeSpot } from './mapgen';
 import { nextInt } from './rng';
 import { freePath } from './routing';
 import { flagLoad } from './store';
-import { isMatureTree, plantTree, removeObject } from './trees';
+import { isMatureField, isMatureTree, plantTree, removeObject, sowField } from './trees';
+import { isPassable } from './map';
 import { allocId, type World } from './world';
 
 function home(world: World, s: Settler): Building | undefined {
@@ -24,6 +25,7 @@ function home(world: World, s: Settler): Building | undefined {
 }
 
 export function standWorker(world: World, s: Settler): void {
+  if (s.job === 'geologist') return standGeologist(world, s);
   const b = home(world, s);
   if (!b) return releaseWorker(world, s.id);
   switch (s.state) {
@@ -181,21 +183,86 @@ function insideWork(world: World, s: Settler, b: Building): void {
       s.wait = def.workTicks;
       return;
     }
+    case 'fisher': {
+      const c = candidatesByDistance(
+        world,
+        b,
+        (n) =>
+          map.resources[n] === Resource.Fish &&
+          map.resourceAmounts[n] > 0 &&
+          !targeted(world, n, s.id),
+      );
+      if (!goOut(world, s, b, c, true)) idleNoResources(s, b);
+      return;
+    }
+    case 'farm': {
+      // Erst reife Felder ernten, sonst ein neues Feld säen.
+      const ripe = candidatesByDistance(
+        world,
+        b,
+        (n) => isMatureField(world, n) && !targeted(world, n, s.id),
+      );
+      if (ripe.length && goOut(world, s, b, ripe, false)) return;
+      const free = candidatesByDistance(
+        world,
+        b,
+        (n) => isFieldSpot(world, b, n) && !targeted(world, n, s.id),
+      );
+      if (!goOut(world, s, b, free, false)) idleNoResources(s, b);
+      return;
+    }
+    case 'mine': {
+      const food = def.consumesAny.find((t) => b.stock[t] > 0);
+      if (!food) {
+        b.status = 'waitingInput';
+        s.wait = TRANSPORT.WORKER_REQUEST_INTERVAL_TICKS;
+        return;
+      }
+      const vein = candidatesByDistance(
+        world,
+        b,
+        (n) => map.resources[n] === def.resource && map.resourceAmounts[n] > 0,
+      )[0];
+      if (vein === undefined) return idleNoResources(s, b);
+      b.stock[food]--;
+      world.ledger[b.owner].wares[food]--;
+      if (--map.resourceAmounts[vein] <= 0) map.resources[vein] = Resource.None;
+      b.status = 'ok';
+      s.state = 'producing';
+      s.wait = def.workTicks;
+      return;
+    }
     case 'store':
       return;
   }
+}
+
+/** Freier, fruchtbarer Knoten im eigenen Gebiet, nicht direkt am Gebäude. */
+function isFieldSpot(world: World, b: Building, n: number): boolean {
+  return n !== b.node && isPlantable(world, n) && world.owner[n] === b.owner;
 }
 
 function startHarvest(world: World, s: Settler, b: Building): void {
   const def = BUILDINGS[b.type];
   const t = s.targetNode;
   const map = world.map;
-  const valid =
-    def.kind === 'woodcutter'
-      ? isMatureTree(world, t)
-      : def.kind === 'quarry'
-        ? map.objects[t] === MapObject.Rock
-        : isPlantable(world, t);
+  let valid: boolean;
+  switch (def.kind) {
+    case 'woodcutter':
+      valid = isMatureTree(world, t);
+      break;
+    case 'quarry':
+      valid = map.objects[t] === MapObject.Rock;
+      break;
+    case 'fisher':
+      valid = map.resources[t] === Resource.Fish && map.resourceAmounts[t] > 0;
+      break;
+    case 'farm':
+      valid = isMatureField(world, t) || isFieldSpot(world, b, t);
+      break;
+    default:
+      valid = isPlantable(world, t);
+  }
   if (!valid) return goHome(world, s, b);
   s.state = 'harvest';
   s.wait = def.workTicks;
@@ -236,8 +303,81 @@ function finishHarvest(world: World, s: Settler, b: Building): void {
     produce(world, s, b, 'stone');
   } else if (def.kind === 'forester' && isPlantable(world, t)) {
     plantTree(world, t);
+  } else if (def.kind === 'fisher' && map.resourceAmounts[t] > 0) {
+    if (--map.resourceAmounts[t] <= 0) map.resources[t] = Resource.None;
+    produce(world, s, b, 'fish');
+  } else if (def.kind === 'farm') {
+    if (isMatureField(world, t)) {
+      removeObject(world, t);
+      produce(world, s, b, 'wheat');
+    } else if (isFieldSpot(world, b, t)) {
+      sowField(world, t);
+    }
   }
   goHome(world, s, b);
+}
+
+// --- Geologe ---------------------------------------------------------------------------------
+
+function standGeologist(world: World, s: Settler): void {
+  switch (s.state) {
+    case 'geoTravel':
+      return nextSurvey(world, s);
+    case 'geoWalk':
+      s.state = 'geoWork';
+      s.wait = GEOLOGIST.WORK_TICKS;
+      return;
+    case 'geoWork':
+      placeSign(world, s);
+      s.count--;
+      return nextSurvey(world, s);
+    default:
+      return;
+  }
+}
+
+function placeSign(world: World, s: Settler): void {
+  const map = world.map;
+  const n = s.node;
+  const r = map.resources[n];
+  const found = r !== Resource.None && r !== Resource.Fish && map.resourceAmounts[n] > 0;
+  world.signs = world.signs.filter((g) => g.node !== n);
+  world.signs.push({
+    node: n,
+    owner: s.owner,
+    resource: found ? r : Resource.None,
+    rich: found && map.resourceAmounts[n] >= GEOLOGIST.RICH_AMOUNT ? 1 : 0,
+    until: world.tick + GEOLOGIST.SIGN_LIFETIME_TICKS,
+  });
+}
+
+/** Nächste Probebohrung an einem zufälligen freien Knoten um die Zielflagge, sonst heimgehen. */
+function nextSurvey(world: World, s: Settler): void {
+  const flag = world.flags[s.targetFlag];
+  if (!flag || s.count <= 0) return releaseWorker(world, s.id);
+  const map = world.map;
+  const spots = nodesInRadius(map, flag.node, GEOLOGIST.RADIUS).filter(
+    (n) =>
+      isPassable(map, n) &&
+      map.objects[n] === MapObject.None &&
+      !world.nodeFlag[n] &&
+      !world.nodeRoad[n] &&
+      !world.nodeBuilding[n] &&
+      !world.signs.some((g) => g.node === n && g.until > world.tick),
+  );
+  for (let tries = 0; tries < 8 && spots.length > 0; tries++) {
+    const k = nextInt(world.rng, 0, spots.length - 1);
+    const target = spots[k];
+    const p = freePath(world, s.node, target);
+    if (p) {
+      s.state = 'geoWalk';
+      s.targetNode = target;
+      s.path = p;
+      return;
+    }
+    spots.splice(k, 1);
+  }
+  releaseWorker(world, s.id);
 }
 
 /** Rückweg zur eigenen Flagge; mit Ware zum Ablegen, sonst direkt ins Gebäude. */

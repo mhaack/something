@@ -1,8 +1,10 @@
 /**
+ * Wachstum von Bäumen und Getreidefeldern.
  * Bäume: objectData kodiert Art (Bits 0–1) und Wachstumsstufe (ab Bit 2).
- * Gepflanzte Bäume wachsen über `world.growingTrees` bis zur ausgewachsenen Stufe.
+ * Felder: objectData ist die Wachstumsstufe.
+ * Gepflanztes wächst über `world.growing` bis zur reifen Stufe.
  */
-import { TREES } from '../data/balance';
+import { FIELDS, TREES } from '../data/balance';
 import { MapObject } from '../data/terrain';
 import { nextInt } from './rng';
 import type { World } from './world';
@@ -30,7 +32,21 @@ export function isMatureTree(world: World, node: number): boolean {
 export function plantTree(world: World, node: number): void {
   world.map.objects[node] = MapObject.Tree;
   world.map.objectData[node] = treeData(nextInt(world.rng, 0, 3), 0);
-  world.growingTrees.push({ node, timer: TREES.GROWTH_STAGE_TICKS });
+  world.growing.push({ node, timer: TREES.GROWTH_STAGE_TICKS });
+  world.mapRevision++;
+}
+
+export function isMatureField(world: World, node: number): boolean {
+  return (
+    world.map.objects[node] === MapObject.Field && world.map.objectData[node] >= FIELDS.MATURE_STAGE
+  );
+}
+
+/** Sät ein Getreidefeld (Stufe 0). */
+export function sowField(world: World, node: number): void {
+  world.map.objects[node] = MapObject.Field;
+  world.map.objectData[node] = 0;
+  world.growing.push({ node, timer: FIELDS.GROWTH_STAGE_TICKS });
   world.mapRevision++;
 }
 
@@ -40,20 +56,28 @@ export function removeObject(world: World, node: number): void {
   world.mapRevision++;
 }
 
-/** Lässt alle wachsenden Bäume um einen Tick altern. */
+/** Lässt alles Gepflanzte (Bäume, Felder) um einen Tick wachsen. */
 export function growTrees(world: World): void {
-  const list = world.growingTrees;
+  const list = world.growing;
+  const map = world.map;
   let w = 0;
   for (let r = 0; r < list.length; r++) {
     const g = list[r];
-    if (world.map.objects[g.node] !== MapObject.Tree) continue;
+    const obj = map.objects[g.node];
+    if (obj !== MapObject.Tree && obj !== MapObject.Field) continue;
     if (--g.timer <= 0) {
-      const data = world.map.objectData[g.node];
-      const stage = treeStage(data) + 1;
-      world.map.objectData[g.node] = treeData(treeVariant(data), stage);
       world.mapRevision++;
-      if (stage >= TREES.MATURE_STAGE) continue;
-      g.timer = TREES.GROWTH_STAGE_TICKS;
+      if (obj === MapObject.Tree) {
+        const data = map.objectData[g.node];
+        const stage = treeStage(data) + 1;
+        map.objectData[g.node] = treeData(treeVariant(data), stage);
+        if (stage >= TREES.MATURE_STAGE) continue;
+        g.timer = TREES.GROWTH_STAGE_TICKS;
+      } else {
+        const stage = ++map.objectData[g.node];
+        if (stage >= FIELDS.MATURE_STAGE) continue;
+        g.timer = FIELDS.GROWTH_STAGE_TICKS;
+      }
     }
     list[w++] = g;
   }

@@ -3,7 +3,7 @@ import { requestWares } from './buildings';
 import { growTrees } from './trees';
 import type { Command } from './commands';
 import { applyCommand } from './commandHandlers';
-import type { Building, Flag, PlayerLedger, Road, Settler, Ware } from './entities';
+import type { Building, Flag, PlayerLedger, Road, Settler, Sign, Ware } from './entities';
 import type { GameMap } from './map';
 import { generateMap } from './mapgen';
 import { createRng, type RngState } from './rng';
@@ -11,7 +11,7 @@ import { processRouteQueue, scheduleReroutes } from './routing';
 import { updateSettler } from './carriers';
 import { createHQ, requestWorkers, storeTick } from './store';
 
-export const WORLD_VERSION = 3;
+export const WORLD_VERSION = 4;
 
 export interface Player {
   id: number;
@@ -47,8 +47,10 @@ export interface World {
   /** Waren, deren Route neu berechnet werden muss (gedeckelt pro Tick abgearbeitet). */
   routeQueue: number[];
   ledger: PlayerLedger[];
-  /** Gepflanzte Bäume im Wachstum. */
-  growingTrees: { node: number; timer: number }[];
+  /** Gepflanzte Bäume und Felder im Wachstum. */
+  growing: { node: number; timer: number }[];
+  /** Schilder des Geologen. */
+  signs: Sign[];
   /** Zähler für Änderungen an Höhen und Kartenobjekten (für Render-Caches). */
   mapRevision: number;
 }
@@ -88,7 +90,8 @@ export function createWorldFromMap(seed: string, map: GameMap, starts: number[])
     wares: {},
     routeQueue: [],
     ledger: [],
-    growingTrees: [],
+    growing: [],
+    signs: [],
     mapRevision: 0,
   };
   for (const p of world.players) createHQ(world, p);
@@ -112,6 +115,9 @@ export function step(world: World, commands: readonly Command[] = []): void {
     if (s) updateSettler(world, s);
   }
   growTrees(world);
+  if (world.tick % BUILD.REQUEST_INTERVAL_TICKS === 0 && world.signs.length) {
+    world.signs = world.signs.filter((s) => s.until > world.tick);
+  }
   if (world.tick % BUILD.REQUEST_INTERVAL_TICKS === 0) requestWares(world);
   scheduleReroutes(world);
   processRouteQueue(world);

@@ -13,6 +13,7 @@ export type Command =
   | { type: 'removeRoad'; player: number; road: number }
   | { type: 'placeBuilding'; player: number; node: number; building: BuildingType }
   | { type: 'removeBuilding'; player: number; building: number }
+  | { type: 'sendGeologist'; player: number; flag: number }
   /** Testfunktion: Das HQ schickt eine Ware zu einer Flagge, von dort geht sie zurück ins Lager. */
   | { type: 'sendWare'; player: number; flag: number; ware?: WareType };
 

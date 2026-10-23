@@ -86,6 +86,8 @@ export const MapObject = {
   None: 0,
   Tree: 1,
   Rock: 2,
+  /** Getreidefeld (objectData = Wachstumsstufe). */
+  Field: 3,
 } as const;
 export type MapObjectId = (typeof MapObject)[keyof typeof MapObject];
 
@@ -96,5 +98,7 @@ export const Resource = {
   Iron: 2,
   Gold: 3,
   Granite: 4,
+  /** Fischbestand auf Wasserknoten. */
+  Fish: 5,
 } as const;
 export type ResourceId = (typeof Resource)[keyof typeof Resource];

@@ -42,6 +42,15 @@ export const JOBS = [
   'forester',
   'stonecutter',
   'sawyer',
+  'fisher',
+  'farmer',
+  'waterer',
+  'miller',
+  'baker',
+  'pigbreeder',
+  'butcher',
+  'geologist',
+  'miner',
 ] as const;
 export type Job = (typeof JOBS)[number];
 
@@ -55,7 +64,19 @@ export const JOB_TOOLS: Record<Job, WareType | null> = {
   forester: 'shovel',
   stonecutter: 'pick',
   sawyer: 'saw',
+  fisher: 'rod',
+  farmer: 'scythe',
+  waterer: null,
+  miller: null,
+  baker: 'rollingpin',
+  pigbreeder: null,
+  butcher: 'cleaver',
+  geologist: 'hammer',
+  miner: 'pick',
 };
+
+/** Nahrung, die Bergleute essen. */
+export const FOOD: readonly WareType[] = ['fish', 'bread', 'meat'];
 
 export type WareCounts = Record<WareType, number>;
 export type JobCounts = Record<Job, number>;

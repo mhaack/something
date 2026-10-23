@@ -2,7 +2,7 @@ import { WARE_TYPES } from '../data/wares';
 import type { Command } from './commands';
 import { canPlaceFlag, placeFlag, removeFlag } from './flags';
 import { buildRoad, removeRoad, validateRoad } from './roads';
-import { canBuild, placeBuilding, removeBuilding } from './buildings';
+import { canBuild, placeBuilding, removeBuilding, sendGeologist } from './buildings';
 import type { World } from './world';
 
 /**
@@ -41,6 +41,8 @@ export function applyCommand(world: World, cmd: Command): boolean {
       if (!b || b.owner !== cmd.player) return false;
       return removeBuilding(world, cmd.building);
     }
+    case 'sendGeologist':
+      return sendGeologist(world, cmd.player, cmd.flag);
     case 'sendWare': {
       const p = world.players[cmd.player];
       const hq = p ? world.buildings[p.hq] : undefined;

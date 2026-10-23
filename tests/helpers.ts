@@ -1,7 +1,10 @@
 import { Terrain } from '../src/data/terrain';
 import type { Command } from '../src/sim/commands';
 import { applyCommand } from '../src/sim/commandHandlers';
-import { Dir, neighbor, nodeIndex } from '../src/sim/geometry';
+import { Dir, neighbor, nodeIndex, nodesInRadius } from '../src/sim/geometry';
+import type { BuildingType } from '../src/data/buildings';
+import type { WareType } from '../src/data/wares';
+import { planRoadSegment } from '../src/sim/roads';
 import { checkInvariants } from '../src/sim/invariants';
 import { createEmptyMap } from '../src/sim/map';
 import { createWorldFromMap, step, type World } from '../src/sim/world';
@@ -66,3 +69,30 @@ export function flagAt(w: World, n: number) {
 }
 
 export { Dir };
+
+/** Baut ein Gebäude und verbindet seine Flagge per Straße mit der HQ-Flagge. */
+export function buildConnected(w: World, n: number, type: BuildingType): number {
+  cmd(w, { type: 'placeBuilding', player: 0, node: n, building: type });
+  const id = w.nodeBuilding[n];
+  const flagNode = w.flags[w.buildings[id].flag].node;
+  const seg = planRoadSegment(w, 0, [hqFlagNode(w)], flagNode);
+  expect(seg).not.toBeNull();
+  cmd(w, { type: 'buildRoad', player: 0, path: [hqFlagNode(w), ...seg!], autoFlags: true });
+  return id;
+}
+
+/** Setzt Terrain (beide Dreiecke) für alle Knoten im Radius. */
+export function paintTerrain(w: World, center: number, r: number, terrain: number): number[] {
+  const nodes = nodesInRadius(w.map, center, r);
+  for (const n of nodes) {
+    w.map.terrain[2 * n] = terrain;
+    w.map.terrain[2 * n + 1] = terrain;
+  }
+  return nodes;
+}
+
+/** Legt Waren ins HQ (verbucht wie Produktion). */
+export function stockHQ(w: World, type: WareType, n: number): void {
+  w.buildings[w.players[0].hq].stock[type] += n;
+  w.ledger[0].wares[type] += n;
+}

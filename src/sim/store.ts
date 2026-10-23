@@ -179,6 +179,7 @@ export function newSettler(world: World, owner: number, job: Job, node: number):
     wait: 0,
     home: 0,
     targetNode: -1,
+    count: 0,
   };
   world.settlers[id] = s;
   return s;

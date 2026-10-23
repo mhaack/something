@@ -1,7 +1,7 @@
 /**
  * Gebäude: Bauplatzgrößen, Baustellen anlegen, Abriss, Warenanforderungen und Arbeiterzuweisung.
  */
-import { TERRAIN_RULES } from '../data/balance';
+import { GEOLOGIST, TERRAIN_RULES } from '../data/balance';
 import { BUILDINGS, sizeFits, type BuildingSize, type BuildingType } from '../data/buildings';
 import { MapObject } from '../data/terrain';
 import {
@@ -344,8 +344,10 @@ export function neededJob(b: Building): Job | null {
 /** Kann dieses Lager den Beruf stellen (vorhanden oder Träger + Werkzeug)? */
 export function canSupply(store: Building, job: Job): boolean {
   if (store.people[job] > 0) return true;
+  if (job === 'carrier' || job === 'donkey' || store.people.carrier <= 0) return false;
   const tool = JOB_TOOLS[job];
-  return !!tool && store.people.carrier > 0 && store.stock[tool] - queuedOf(store, tool) > 0;
+  // Berufe ohne Werkzeug entstehen direkt aus einem Träger.
+  return !tool || store.stock[tool] - queuedOf(store, tool) > 0;
 }
 
 function queuedOf(store: Building, type: WareType): number {
@@ -360,10 +362,49 @@ function takeWorker(world: World, store: Building, job: Job): void {
     store.people[job]--;
     return;
   }
-  const tool = JOB_TOOLS[job]!;
+  const tool = JOB_TOOLS[job];
   store.people.carrier--;
+  if (!tool) return;
   store.stock[tool]--;
   world.ledger[store.owner].wares[tool]--;
+}
+
+/** Findet ein erreichbares Lager, das den Beruf stellen kann, samt Route zur Zielflagge. */
+function findSupplier(
+  world: World,
+  owner: number,
+  flagId: number,
+  job: Job,
+): { store: Building; path: number[] } | null {
+  const res = searchFlags(world, flagId, owner, false, (f) => {
+    const s = world.buildings[world.flags[f].building];
+    return !!s && s.owner === owner && isStore(s) && canSupply(s, job);
+  });
+  if (res.found < 0) return null;
+  const store = world.buildings[world.flags[res.found].building];
+  const back = searchFlags(world, res.found, owner, false, (f) => f === flagId);
+  if (back.found < 0) return null;
+  const storeFlagNode = world.flags[store.flag].node;
+  return {
+    store,
+    path: [storeFlagNode, ...nodesAlongRoute(world, routeSteps(back, res.found))],
+  };
+}
+
+/** Schickt einen Geologen zu einer Flagge. Liefert false, wenn keiner verfügbar ist. */
+export function sendGeologist(world: World, player: number, flagId: number): boolean {
+  const flag = world.flags[flagId];
+  if (!flag || flag.owner !== player) return false;
+  const sup = findSupplier(world, player, flagId, 'geologist');
+  if (!sup) return false;
+  takeWorker(world, sup.store, 'geologist');
+  const s = newSettler(world, player, 'geologist', sup.store.node);
+  s.state = 'geoTravel';
+  s.targetFlag = flagId;
+  s.count = GEOLOGIST.SURVEYS;
+  s.path = sup.path;
+  startNextStep(world, s);
+  return true;
 }
 
 /** Schickt fehlende Arbeiter zu Baustellen und Gebäuden. */
@@ -376,21 +417,13 @@ export function dispatchBuildingWorkers(world: World): void {
     const w = world.settlers[b.worker];
     if (w && w.home === b.id) continue;
     b.worker = 0;
-    const res = searchFlags(world, b.flag, b.owner, false, (f) => {
-      const s = world.buildings[world.flags[f].building];
-      return !!s && s.owner === b.owner && isStore(s) && canSupply(s, job);
-    });
-    if (res.found < 0) continue;
-    const store = world.buildings[world.flags[res.found].building];
-    const back = searchFlags(world, res.found, b.owner, false, (f) => f === b.flag);
-    if (back.found < 0) continue;
-    takeWorker(world, store, job);
-    const s = newSettler(world, b.owner, job, store.node);
+    const sup = findSupplier(world, b.owner, b.flag, job);
+    if (!sup) continue;
+    takeWorker(world, sup.store, job);
+    const s = newSettler(world, b.owner, job, sup.store.node);
     s.state = 'toBuilding';
     s.home = b.id;
-    const storeFlagNode = world.flags[store.flag].node;
-    const route = nodesAlongRoute(world, routeSteps(back, res.found));
-    s.path = store.flag === b.flag ? [storeFlagNode, b.node] : [storeFlagNode, ...route, b.node];
+    s.path = [...sup.path, b.node];
     b.worker = s.id;
     startNextStep(world, s);
   }

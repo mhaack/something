@@ -110,8 +110,9 @@ export function generateMap(opts: MapGenOptions): GeneratedMap {
     }
   }
 
-  // 5. Bodenschätze
+  // 5. Bodenschätze und Fisch
   placeResources(map, seed);
+  placeFish(map, rng);
 
   // 6. Startpositionen
   const starts = chooseStarts(map, opts.players, rng);
@@ -195,6 +196,26 @@ function placeResources(map: GameMap, seed: number): void {
     map.resources[i] = types[best];
     const strength = (bestV - MAP.RESOURCE_THRESHOLD) / (1 - MAP.RESOURCE_THRESHOLD);
     map.resourceAmounts[i] = Math.max(1, Math.round(strength * MAP.RESOURCE_MAX_AMOUNT));
+  }
+}
+
+/** Fischbestand auf Wasserknoten in Küstennähe. */
+function placeFish(map: GameMap, rng: RngState): void {
+  const n = map.width * map.height;
+  const isWaterNode = (i: number): boolean =>
+    map.terrain[2 * i] === Terrain.Water && map.terrain[2 * i + 1] === Terrain.Water;
+  for (let i = 0; i < n; i++) {
+    if (!isWaterNode(i)) continue;
+    let coast = false;
+    for (const j of nodesInRadius(map, i, MAP.FISH_COAST_DISTANCE)) {
+      if (!isWaterNode(j)) {
+        coast = true;
+        break;
+      }
+    }
+    if (!coast) continue;
+    map.resources[i] = Resource.Fish;
+    map.resourceAmounts[i] = nextInt(rng, MAP.FISH_MIN, MAP.FISH_MAX);
   }
 }
 

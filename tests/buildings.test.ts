@@ -119,8 +119,8 @@ describe('Produktion', () => {
   it('Förster pflanzt Bäume, die heranwachsen', () => {
     const w = flatWorld();
     buildConnected(w, node(w, 25, 22), 'forester');
-    runUntil(w, () => w.growingTrees.length > 0, 8000);
-    const planted = w.growingTrees[0].node;
+    runUntil(w, () => w.growing.length > 0, 8000);
+    const planted = w.growing[0].node;
     runUntil(
       w,
       () => w.map.objectData[planted] >> 2 >= TREES.MATURE_STAGE,

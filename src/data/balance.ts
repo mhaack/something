@@ -49,6 +49,10 @@ export const MAP = {
   RESOURCE_PERIOD: 14,
   RESOURCE_THRESHOLD: 0.55,
   RESOURCE_MAX_AMOUNT: 20,
+  /** Fischbestand auf Wasserknoten nahe der Küste. */
+  FISH_COAST_DISTANCE: 3,
+  FISH_MIN: 2,
+  FISH_MAX: 8,
 } as const;
 
 export const START = {
@@ -197,6 +201,16 @@ export const BUILD = {
   NO_RESOURCE_RETRY_TICKS: 200,
 } as const;
 
+/** Gemeinsame Werte der Bergwerke: Nahrungspuffer je Sorte, Radius für Bodenschätze. */
+const MINE_VALUES = {
+  planks: 4,
+  stone: 0,
+  radius: 2,
+  workTicks: 200,
+  restTicks: 100,
+  inputs: { fish: 2, bread: 2, meat: 2 },
+} as const;
+
 /** Werte pro Gebäudetyp. Kosten in Brettern/Steinen, Zeiten in Ticks, Radien in Knoten. */
 export const BUILDING_VALUES = {
   hq: { planks: 0, stone: 0, radius: 0, workTicks: 0, restTicks: 0, inputs: {} },
@@ -205,6 +219,49 @@ export const BUILDING_VALUES = {
   forester: { planks: 2, stone: 0, radius: 5, workTicks: 60, restTicks: 220, inputs: {} },
   quarry: { planks: 2, stone: 0, radius: 6, workTicks: 120, restTicks: 120, inputs: {} },
   sawmill: { planks: 3, stone: 2, radius: 0, workTicks: 140, restTicks: 20, inputs: { wood: 6 } },
+  fisher: { planks: 2, stone: 0, radius: 7, workTicks: 160, restTicks: 140, inputs: {} },
+  farm: { planks: 3, stone: 1, radius: 3, workTicks: 80, restTicks: 100, inputs: {} },
+  well: { planks: 2, stone: 0, radius: 0, workTicks: 80, restTicks: 100, inputs: {} },
+  mill: { planks: 3, stone: 2, radius: 0, workTicks: 120, restTicks: 40, inputs: { wheat: 6 } },
+  bakery: {
+    planks: 3,
+    stone: 2,
+    radius: 0,
+    workTicks: 140,
+    restTicks: 40,
+    inputs: { flour: 4, water: 4 },
+  },
+  pigfarm: {
+    planks: 4,
+    stone: 2,
+    radius: 0,
+    workTicks: 300,
+    restTicks: 100,
+    inputs: { wheat: 4, water: 4 },
+  },
+  butcher: { planks: 3, stone: 2, radius: 0, workTicks: 120, restTicks: 40, inputs: { pig: 4 } },
+  coalmine: MINE_VALUES,
+  ironmine: MINE_VALUES,
+  goldmine: MINE_VALUES,
+  granitemine: MINE_VALUES,
+} as const;
+
+export const FIELDS = {
+  /** Ticks pro Wachstumsstufe eines Getreidefelds (Stufen 0..MATURE). */
+  GROWTH_STAGE_TICKS: 900,
+  MATURE_STAGE: 3,
+} as const;
+
+export const GEOLOGIST = {
+  /** Suchradius um die Zielflagge. */
+  RADIUS: 6,
+  /** Zahl der Probebohrungen pro Einsatz. */
+  SURVEYS: 8,
+  WORK_TICKS: 60,
+  /** Lebensdauer eines Schilds. */
+  SIGN_LIFETIME_TICKS: 6000,
+  /** Ab dieser Restmenge zeigt das Schild „viel“. */
+  RICH_AMOUNT: 10,
 } as const;
 
 export const TREES = {
