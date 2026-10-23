@@ -1054,3 +1054,10 @@ body.in-menu .pause-overlay {
 #toast.info {
   background: linear-gradient(180deg, #4a7a2a, #2e5418);
 }
+
+.dist-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+}

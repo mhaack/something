@@ -9,6 +9,7 @@ import { nodeDistance, nodesInRadius } from '../sim/geometry';
 import { claimRadius, claimsTerritory } from '../sim/territory';
 import { FOOD, JOB_TOOLS, TOOL_WARES, type ToolWare } from '../data/wares';
 import type { Command } from '../sim/commands';
+import type { DistributionGroupId } from '../data/distribution';
 import type { Building } from '../sim/entities';
 import { attackSources, isAttackable, reserveOf, spareSoldiers } from '../sim/military';
 import { neededJob } from '../sim/buildings';
@@ -167,7 +168,10 @@ export function think(
   connectOrphan(view, cmds);
   demolishExhausted(view, cmds);
   removeDeadEnd(view, cmds);
-  if (AI.MANAGE_TOOLS[level]) manageTools(view, cmds);
+  if (AI.MANAGE_TOOLS[level]) {
+    const urgent = manageTools(view, cmds);
+    manageDistribution(view, cmds, urgent > 0);
+  }
   const short = carriersShort(view);
   if (!short) build(view, cmds);
   // Früh nach Erz suchen: Funde bleiben im Gedächtnis, bis die Bauordnung bei den Bergwerken ist.
@@ -254,7 +258,7 @@ function demolishExhausted(view: View, cmds: Command[]): void {
 }
 
 /** Werkzeuge für fehlende Berufe dringend, alle anderen nicht herstellen. */
-function manageTools(view: View, cmds: Command[]): void {
+function manageTools(view: View, cmds: Command[]): number {
   const urgent = new Set<ToolWare>();
   for (const b of view.buildings) {
     if (b.worker) continue;
@@ -273,6 +277,40 @@ function manageTools(view: View, cmds: Command[]): void {
     const want = urgent.has(t) ? AI.TOOL_URGENT : AI.TOOL_IDLE;
     if (prio[t] !== want)
       cmds.push({ type: 'setToolPriority', player: view.player, tool: t, value: want });
+  }
+  return urgent.size;
+}
+
+/**
+ * Verteilung knapper Waren: Kohle zuerst an die Schmelze, Eisen an die Werkzeugschmiede, solange
+ * Werkzeuge fehlen, sonst an die Waffenschmiede; Nahrung zuerst an Kohle- und Eisenbergwerke.
+ */
+function manageDistribution(view: View, cmds: Command[], toolsNeeded: boolean): void {
+  const want: Partial<Record<DistributionGroupId, Record<string, number>>> = {
+    coal: {
+      smelter: 8,
+      weaponsmith: toolsNeeded ? 3 : 6,
+      toolsmith: toolsNeeded ? 8 : 2,
+      mint: view.level === 'hard' ? 4 : 2,
+    },
+    iron: { toolsmith: toolsNeeded ? 8 : 2, weaponsmith: toolsNeeded ? 3 : 8 },
+    food: { coalmine: 6, ironmine: 6, goldmine: 3, granitemine: lowStone(view) ? 4 : 1 },
+  };
+  const dist = view.world.players[view.player].distribution;
+  for (const [g, values] of Object.entries(want) as [
+    DistributionGroupId,
+    Record<string, number>,
+  ][]) {
+    for (const [building, value] of Object.entries(values)) {
+      if (dist[g][building] === value) continue;
+      cmds.push({
+        type: 'setDistribution',
+        player: view.player,
+        group: g,
+        building: building as BuildingType,
+        value,
+      });
+    }
   }
 }
 

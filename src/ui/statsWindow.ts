@@ -1,5 +1,10 @@
 /** Statistik-Fenster: Warenbestand, Verlaufsdiagramm, Siedler nach Beruf, Werkzeug-Prioritäten. */
-import { SIM, STATS, TOOLS } from '../data/balance';
+import { DISTRIBUTION, SIM, STATS, TOOLS } from '../data/balance';
+import {
+  DISTRIBUTION_GROUPS,
+  DISTRIBUTION_GROUP_IDS,
+  type DistributionGroupId,
+} from '../data/distribution';
 import { JOBS, JOB_TOOLS, TOOL_WARES, WARE_TYPES, type Job, type WareType } from '../data/wares';
 import type { Command } from '../sim/commands';
 import { canSupply, neededJob } from '../sim/buildings';
@@ -9,7 +14,7 @@ import { t, tDyn } from './i18n';
 import { icon, wareIcon } from './icons';
 import { el } from './panels';
 
-type Tab = 'wares' | 'history' | 'people' | 'tools';
+type Tab = 'wares' | 'history' | 'people' | 'tools' | 'distribution';
 
 /** Kategoriepalette (dunkle Stufen, gegen den Panel-Hintergrund validiert). */
 const SERIES = ['#3987e5', '#d95926', '#199e70', '#c98500'];
@@ -40,7 +45,7 @@ export class StatsWindow {
     close.title = t('action.close');
     close.addEventListener('click', () => this.toggle(false));
     const tabRow = el('div', { className: 'tabs' });
-    for (const tab of ['wares', 'history', 'people', 'tools'] as Tab[]) {
+    for (const tab of ['wares', 'history', 'people', 'tools', 'distribution'] as Tab[]) {
       const b = el('button', { className: 'tab', text: t(`stats.tab.${tab}`) });
       b.addEventListener('click', () => this.show(tab));
       this.tabs.set(tab, b);
@@ -101,6 +106,10 @@ export class StatsWindow {
       case 'tools':
         if (full || this.sliders.size === 0) this.body.replaceChildren(...this.toolsView(w));
         else this.updateSliders(w);
+        return;
+      case 'distribution':
+        if (full || this.sliders.size === 0) this.body.replaceChildren(...this.distributionView(w));
+        else this.updateDistribution(w);
         return;
     }
   }
@@ -461,6 +470,60 @@ export class StatsWindow {
       );
     }
     return [el('div', { className: 'panel-foot', text: t('stats.toolsHint') }), grid];
+  }
+
+  // --- Verteilung ----------------------------------------------------------------------
+
+  private distributionView(w: World): HTMLElement[] {
+    const p = w.players[this.player];
+    const out: HTMLElement[] = [el('div', { className: 'panel-foot', text: t('stats.distHint') })];
+    for (const g of DISTRIBUTION_GROUP_IDS) {
+      const group = DISTRIBUTION_GROUPS[g];
+      out.push(
+        el('div', { className: 'panel-sub dist-head' }, [
+          ...group.wares.map((ware) => wareIcon(ware)),
+          t(`stats.dist.${g}`),
+        ]),
+      );
+      const grid = el('div', { className: 'tool-sliders' });
+      for (const building of group.consumers) {
+        const input = document.createElement('input');
+        input.type = 'range';
+        input.min = '0';
+        input.max = String(DISTRIBUTION.MAX);
+        input.value = String(p.distribution[g][building]);
+        const value = el('span', { className: 'slider-value', text: input.value });
+        input.addEventListener('input', () => {
+          value.textContent = input.value;
+          this.enqueue({
+            type: 'setDistribution',
+            player: this.player,
+            group: g,
+            building,
+            value: Number(input.value),
+          });
+        });
+        this.sliders.set(`${g}:${building}`, input);
+        grid.append(
+          el('div', { className: 'slider-row' }, [
+            el('span', { className: 'ware-name', text: tDyn(`building.${building}`) }),
+            input,
+            value,
+            el('span'),
+          ]),
+        );
+      }
+      out.push(grid);
+    }
+    return out;
+  }
+
+  private updateDistribution(w: World): void {
+    const p = w.players[this.player];
+    for (const [key, input] of this.sliders) {
+      const [g, building] = key.split(':') as [DistributionGroupId, string];
+      if (document.activeElement !== input) input.value = String(p.distribution[g][building]);
+    }
   }
 
   private updateSliders(w: World): void {
