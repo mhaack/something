@@ -18,6 +18,11 @@
   Karte (Grundwirtschaft, Ausdehnung, Baustellenlimit, Straßenanschluss), Determinismus,
   Angriffsplanung, Eroberung, Werkzeuge, Anschluss verwaister Gebäude, Laufzeit auf 256×256.
 - Browser: 256×256, drei schwere Gegner, 8x-Tempo: 60 FPS, KI unter 0,1 ms pro Tick im Mittel.
+- Nachbesserung der KI (A45–A49): Soldatenreserve im HQ (für alle Spieler einstellbar),
+  Erzausgleich auf der Karte, Geologe bohrt im Berg, KI-Gedächtnis für Funde, Querverbindungen,
+  sparsamere Straßen, Förster ohne Wald, Nahrung für Bergwerke. Messung über 6 Karten × 3 KIs
+  (40 Minuten Spielzeit): Waffen stellen jetzt 12 von 18 KIs her (vorher etwa 5), deutlich mehr
+  Gebiet und Soldaten.
 
 ## Davor: Phase 6
 
@@ -148,15 +153,14 @@
 
 ### Bekannte Punkte
 - Vom Spieler abgerissene Gebäude verschwinden sofort; nur verlorene/zerstörte Gebäude brennen.
-- Ohne Eisenerz in Reichweite kommt die KI militärisch kaum voran (Soldaten brauchen Waffen);
-  Balancing der Kette und der Kartenfairness bei Bergen in Phase 8.
-- Das KI-Straßennetz ist baumförmig (keine Querverbindungen), lange Wege können stauen.
-- Militärgebäude ziehen alle Soldaten aus dem HQ ab (gilt für alle Spieler); eine einstellbare
-  Reserve fehlt noch.
+- Ein Drittel der KIs findet in 40 Minuten kein passendes Erz in ihrem Land (z. B. ganz ohne Berge
+  oder nur Kohle) und bleibt militärisch schwach. Weiteres Balancing in Phase 8.
+- Die KI kann keine Waren gezielt verteilen (z. B. Kohle zuerst an die Schmelze); Verteilungs-
+  einstellungen fehlen noch für alle Spieler.
 - Fischbestände wachsen nicht nach.
 - Minikarte zeigt noch keine Straßen.
 - Kein Hauptmenü, Seed/Größe/Spieler per URL (Annahme A5).
 - Siedler laufen auf Straßen durcheinander hindurch (kein Ausweichen), wie im Original.
 
 ### Annahmen
-Siehe PLAN.md, Abschnitt 5 (A1–A44).
+Siehe PLAN.md, Abschnitt 5 (A1–A49).

@@ -215,3 +215,19 @@ STATUS.md und Commit.
 - A44: Die KI plant neue Militärgebäude nur mit freien Soldaten (abzüglich einer kleinen Reserve
   je Stufe) und gibt Militärgebäude im Hinterland auf, deren Gebiet andere Gebäude abdecken,
   damit Soldaten an die Grenze kommen.
+- A45: Soldatenreserve: Jeder Spieler legt fest, wie viele Soldaten im Hauptquartier bleiben
+  (Standard `MILITARY.DEFAULT_RESERVE`, einstellbar im HQ-Fenster per Befehl `setReserve`). Neue
+  Waffen füllen zuerst die Reserve auf; Militärgebäude und Angriffe bekommen nur Soldaten darüber.
+- A46: Kartenfairness: Startplätze mit Bergen in Reichweite werden bevorzugt, und unter den
+  nächstgelegenen Bergknoten jedes Starts liegen mindestens `MIN_COAL_NODES` Kohle- und
+  `MIN_IRON_NODES` Eisenknoten (Erzausgleich, deterministisch).
+- A47: Der Geologe bohrt nur auf Bergknoten, wenn es in seinem Radius welche gibt (Erz gibt es nur
+  im Berg). Träger entstehen alle 20 s statt 30 s, höchstens 150 pro Lager.
+- A48: Die KI hat ein kleines Gedächtnis (`AiState`): gefundene Vorkommen und Bohrstellen. Es
+  liegt außerhalb des Weltzustands, die Simulation liest es nie; Replays (nur Befehle) bleiben
+  exakt. Es ist JSON-serialisierbar und kommt in Phase 8 mit in den Spielstand.
+- A49: Weitere KI-Regeln: Bergwerke sofort an bekannten Funden, Waffenschmiede erst mit laufenden
+  Bergwerken, Förster zuerst, wenn kein Wald in Reichweite ist, zusätzliche Nahrungsbetriebe, wenn
+  Bergwerke hungern, Stichstraßen ohne Gebäude werden abgerissen, Querverbindungen bei großen
+  Umwegen, Zwischenflaggen nur auf langen Straßen, Baustopp bei Trägermangel, Reserve auf 1
+  solange Erz fehlt, Ausdehnung zu bekannten Erzfunden.

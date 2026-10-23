@@ -38,6 +38,7 @@ Tastenübersicht im Spiel.
 | Minikarte | Klicken/Ziehen springt zur Position, `M` blendet ein/aus |
 | Pause / Tempo 1x–8x | Leertaste / `+` `−` |
 | Angriff | Klick auf ein feindliches Militärgebäude, Anzahl der Soldaten wählen, „Angreifen“ |
+| Soldatenreserve im HQ | HQ-Fenster: Reserve − / + |
 | Neues Spiel (freies Spiel oder Mission) | `N` oder Leistenknopf |
 | Statistik (Waren, Verlauf, Siedler, Werkzeug-Prioritäten) | `T` |
 | Hilfe / Debug | `F1` / `F3` |
