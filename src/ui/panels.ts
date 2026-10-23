@@ -128,16 +128,18 @@ export class InfoPanel {
 /** Kurzmeldungen am oberen Bildschirmrand. */
 export class Toast {
   private timer = 0;
-  /** Wird bei jeder Meldung aufgerufen (Warnton). */
-  onShow: (() => void) | null = null;
+  /** Wird bei jeder Meldung aufgerufen (Ton je nach Art). */
+  onShow: ((kind: 'warn' | 'info') => void) | null = null;
 
   constructor(private el: HTMLElement) {
     el.hidden = true;
   }
 
-  show(text: string): void {
-    this.onShow?.();
+  /** Meldung anzeigen: `warn` für Fehler und Warnungen, `info` für Erfolgsmeldungen. */
+  show(text: string, kind: 'warn' | 'info' = 'warn'): void {
+    this.onShow?.(kind);
     this.el.textContent = text;
+    this.el.classList.toggle('info', kind === 'info');
     this.el.classList.remove('pop');
     void this.el.offsetWidth;
     this.el.classList.add('pop');

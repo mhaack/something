@@ -94,6 +94,10 @@ export const TERRAIN_RULES = {
 } as const;
 
 export const VIEW = {
+  /** Hauptmenü: Hintergrundpartie (Kartengröße, Tempostufe, Kameraschwenk in Basispixeln/s). */
+  DEMO_MAP_SIZE: 64,
+  DEMO_SPEED_INDEX: 1,
+  DEMO_PAN_SPEED: 12,
   /** Ziel-Basisbreiten der Zoomstufen in Pixeln (ganzzahlige Skalierung wird daraus berechnet). */
   ZOOM_BASE_WIDTHS: [960, 640, 480, 320] as const,
   DEFAULT_ZOOM: 1,
@@ -479,4 +483,12 @@ export const AUDIO = {
   MIN_GAP_MS: { chop: 90, stone: 90, hit: 70, harvest: 150, built: 200, burned: 600 } as Partial<
     Record<string, number>
   >,
+} as const;
+
+export const SAVE = {
+  /** Speicherplätze im Browser (dazu ein Platz für das automatische Speichern). */
+  SLOTS: 5,
+  AUTO_SLOT: 'auto',
+  /** Automatisch speichern alle n Ticks Spielzeit (5 Minuten bei 1x). */
+  AUTOSAVE_TICKS: 6000,
 } as const;

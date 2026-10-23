@@ -444,9 +444,12 @@ export class Tools {
         if (this.roadPath) this.cancelRoad();
         else if (this.mode !== 'select') this.setMode('select');
         else {
+          // Nichts mehr offen: Esc geht an das Spielmenü weiter.
+          const open = this.host.popup.visible || this.host.info.visible || this.selectedNode >= 0;
           this.host.popup.hide();
           this.host.info.close();
           this.selectedNode = -1;
+          return open;
         }
         return true;
       case 'Backspace':

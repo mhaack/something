@@ -1,6 +1,7 @@
 import {
   AI_LEVELS,
   MAP,
+  SAVE,
   START,
   STOCK_LEVELS,
   VIEW,
@@ -13,6 +14,7 @@ import {
   cameraListener,
   centerOnNode,
   clampCamera,
+  worldPixelWidth,
   createCamera,
   fitCamera,
   pickNode,
@@ -30,7 +32,12 @@ import { Tools } from './ui/tools';
 import { StatsWindow } from './ui/statsWindow';
 import { GameClock } from './ui/clock';
 import { DebugOverlay } from './ui/debugOverlay';
-import { t } from './ui/i18n';
+import { t, tDyn } from './ui/i18n';
+import { SaveDialog } from './ui/saveDialog';
+import { MainMenu, PauseMenu, SettingsDialog, type MenuActions } from './ui/menus';
+import { loadSettings, storeSettings, type Settings } from './ui/settings';
+import { downloadSave, writeSave } from './ui/saveStore';
+import { SaveFormatError, decodeSave, encodeSave } from './sim/save';
 import {
   GameMenu,
   markMissionDone,
@@ -85,6 +92,13 @@ function writeOptions(o: GameOptions): void {
   history.replaceState(null, '', url);
 }
 
+/** Daten im Spielstand außerhalb der Simulation. */
+interface SaveExtra {
+  ai: AiState;
+  options: GameOptions;
+  camera: { x: number; y: number; zoom: number };
+}
+
 class Game {
   world: World;
   cam: Camera = createCamera();
@@ -114,6 +128,15 @@ class Game {
   outcome = new OutcomeDialog(document.body);
   private outcomeShown = false;
   private defeatedSeen = new Set<number>();
+  private lastAutosave = 0;
+  settings: Settings = loadSettings();
+  saves: SaveDialog;
+  pauseMenu: PauseMenu;
+  mainMenu: MainMenu;
+  settingsDialog: SettingsDialog;
+  /** Hauptmenü: im Hintergrund spielen nur Computer. */
+  private demo = false;
+  private pausedBeforeMenu = false;
   private mouseX = -1;
   private mouseY = -1;
   private lastFrame = performance.now();
@@ -127,7 +150,35 @@ class Game {
   constructor(private canvas: HTMLCanvasElement) {
     this.options = readOptions();
     this.world = createWorld(toWorldOptions(this.options));
+    this.applySettings(this.settings);
     this.menu = new GameMenu(document.body, this.options, (o) => this.startGame(o));
+    this.saves = new SaveDialog(document.body, {
+      save: (slot) => this.saveTo(slot),
+      load: (json) => this.loadJson(json),
+      exportFile: () => this.exportFile(),
+      toast: (text, kind) => this.toast.show(text, kind),
+    });
+    const actions: MenuActions = {
+      newGame: () => this.menu.toggle(true, 'free'),
+      missions: () => this.menu.toggle(true, 'missions'),
+      load: () => this.saves.show('load'),
+      save: () => this.saves.show('save'),
+      settings: () => this.settingsDialog.show(),
+      help: () => this.hud.setHelp(true),
+      toMainMenu: () => this.toMainMenu(),
+      resume: () => this.pauseMenu.hide(),
+    };
+    this.pauseMenu = new PauseMenu(document.body, actions);
+    this.pauseMenu.onClose = () => {
+      this.clock.paused = this.pausedBeforeMenu;
+      this.updateHud();
+    };
+    this.mainMenu = new MainMenu(document.body, actions);
+    this.settingsDialog = new SettingsDialog(
+      document.body,
+      () => this.settings,
+      (s) => this.applySettings(s),
+    );
     this.hud = new Hud(document.body, {
       setMode: (m) => this.tools.setMode(m),
       toggleBuildHelp: () => this.onKey('KeyH'),
@@ -192,7 +243,7 @@ class Game {
     this.resize();
     centerOnNode(this.cam, this.world.map, this.world.players[0].hqNode);
     this.updateHud();
-    this.toast.onShow = () => this.audio.play('warn');
+    this.toast.onShow = (kind) => this.audio.play(kind === 'warn' ? 'warn' : 'click');
     // Browser erlauben Ton erst nach einer Nutzeraktion.
     const unlock = (): void => this.audio.unlock();
     window.addEventListener('pointerdown', unlock);
@@ -200,23 +251,145 @@ class Game {
     requestAnimationFrame((ts) => this.frame(ts));
   }
 
+  private applySettings(s: Settings): void {
+    this.settings = s;
+    storeSettings(s);
+    this.audio.setVolumes(s.sfx, s.music, s.muted);
+    // Beim Start existiert die Leiste noch nicht.
+    if (this.hud) this.updateHud();
+  }
+
+  /** Startbildschirm mit einer Partie zwischen Computerspielern im Hintergrund. */
+  enterMainMenu(): void {
+    const o: GameOptions = {
+      seed: randomSeed(),
+      size: VIEW.DEMO_MAP_SIZE,
+      opponents: ['normal', 'normal', 'normal'],
+      stock: 'high',
+      mission: 0,
+    };
+    const world = createWorld(toWorldOptions(o));
+    world.players[0].human = false;
+    world.players[0].ai = 'normal';
+    this.adopt(world, createAiState(), this.options);
+    this.demo = true;
+    this.mainMenu.visible = true;
+    this.pauseMenu.hide();
+    centerOnNode(this.cam, this.world.map, this.world.players[0].hqNode);
+    this.clock.paused = false;
+    this.clock.speedIndex = VIEW.DEMO_SPEED_INDEX;
+    this.updateHud();
+  }
+
+  private toMainMenu(): void {
+    if (this.settings.autosave && !this.world.outcome) {
+      void this.saveTo(SAVE.AUTO_SLOT).catch(() => undefined);
+    }
+    this.enterMainMenu();
+  }
+
+  private leaveMainMenu(): void {
+    if (!this.demo) return;
+    this.demo = false;
+    this.mainMenu.visible = false;
+    this.clock.speedIndex = 0;
+  }
+
   startGame(o: GameOptions): void {
+    this.leaveMainMenu();
+    this.adopt(createWorld(toWorldOptions(o)), createAiState(), o);
+    centerOnNode(this.cam, this.world.map, this.world.players[0].hqNode);
+    this.clock.paused = false;
+    this.updateHud();
+  }
+
+  /** Übernimmt eine Welt (neu oder geladen) samt KI-Gedächtnis. */
+  private adopt(world: World, ai: AiState, o: GameOptions): void {
     this.options = o;
-    writeOptions(o);
-    this.world = createWorld(toWorldOptions(o));
+    if (!this.demo) writeOptions(o);
+    this.world = world;
+    this.ai = ai;
     this.pending = [];
     this.replay = [];
-    this.ai = createAiState();
-    this.outcomeShown = false;
-    this.defeatedSeen.clear();
+    this.outcomeShown = !!world.outcome;
+    this.defeatedSeen = new Set(world.players.filter((p) => p.defeated).map((p) => p.id));
+    this.lastAutosave = world.tick;
     this.outcome.hide();
-    this.clock.paused = false;
     this.tools.reset();
     this.renderer.setWorld(this.world);
     this.minimap.setWorld(this.world);
     this.resize();
-    centerOnNode(this.cam, this.world.map, this.world.players[0].hqNode);
+  }
+
+  private saveName(): string {
+    const o = this.options;
+    return o.mission
+      ? t('save.nameMission', { n: o.mission, title: tDyn(`mission.${o.mission}.title`) })
+      : t('save.nameFree', { size: o.size, seed: o.seed });
+  }
+
+  private encode(): string {
+    const extra: SaveExtra = {
+      ai: this.ai,
+      options: this.options,
+      camera: { x: this.cam.x, y: this.cam.y, zoom: this.cam.zoom },
+    };
+    return encodeSave(this.world, extra, {
+      name: this.saveName(),
+      savedAt: Date.now(),
+      tick: this.world.tick,
+    });
+  }
+
+  async saveTo(slot: string): Promise<void> {
+    const json = this.encode();
+    const meta = decodeSave(json).meta;
+    await writeSave(slot, meta, json);
+  }
+
+  exportFile(): void {
+    downloadSave(`kleine-siedler-${this.options.seed}-${this.world.tick}.json`, this.encode());
+  }
+
+  /** Lädt einen Spielstand; Fehler werden gemeldet. */
+  loadJson(json: string): boolean {
+    let file;
+    try {
+      file = decodeSave<Partial<SaveExtra>>(json);
+    } catch (e) {
+      const code = e instanceof SaveFormatError ? e.code : 'notASave';
+      this.toast.show(t(`save.${code}`));
+      return false;
+    }
+    const extra = file.extra ?? {};
+    const options: GameOptions = extra.options ?? {
+      seed: file.world.seed,
+      size: file.world.map.width,
+      opponents: file.world.players.slice(1).map((p) => p.ai ?? 'normal'),
+      stock: file.world.setup.stock,
+      mission: file.world.setup.mission,
+    };
+    this.leaveMainMenu();
+    this.adopt(file.world, extra.ai ?? createAiState(), options);
+    if (extra.camera) {
+      this.cam.zoom = extra.camera.zoom;
+      this.resize();
+      this.cam.x = extra.camera.x;
+      this.cam.y = extra.camera.y;
+      clampCamera(this.cam, this.world.map);
+    } else centerOnNode(this.cam, this.world.map, this.world.players[0].hqNode);
+    this.clock.paused = true;
+    this.toast.show(t('save.loaded'), 'info');
     this.updateHud();
+    return true;
+  }
+
+  /** Speichert in regelmäßigen Abständen Spielzeit automatisch (im Hintergrund). */
+  private autosave(): void {
+    if (!this.settings.autosave || this.world.outcome) return;
+    if (this.world.tick - this.lastAutosave < SAVE.AUTOSAVE_TICKS) return;
+    this.lastAutosave = this.world.tick;
+    window.setTimeout(() => void this.saveTo(SAVE.AUTO_SLOT).catch(() => undefined), 0);
   }
 
   /** Spielende und besiegte Gegner melden. */
@@ -224,7 +397,7 @@ class Game {
     for (const p of this.world.players) {
       if (p.id === 0 || !p.defeated || this.defeatedSeen.has(p.id)) continue;
       this.defeatedSeen.add(p.id);
-      this.toast.show(t('toast.defeatedOpponent', { color: playerName(this.world, p.id) }));
+      this.toast.show(t('toast.defeatedOpponent', { color: playerName(this.world, p.id) }), 'info');
     }
     const o = this.world.outcome;
     if (!o || this.outcomeShown) return;
@@ -319,7 +492,18 @@ class Game {
       this.updateHud();
       return;
     }
-    if (this.outcome.visible) return;
+    for (const d of [this.saves, this.settingsDialog, this.pauseMenu]) {
+      if (d.visible) {
+        if (code === 'Escape') d.hide();
+        return;
+      }
+    }
+    if (this.hud.helpVisible && (code === 'Escape' || code === 'F1')) {
+      this.hud.setHelp(false);
+      this.updateHud();
+      return;
+    }
+    if (this.mainMenu.visible || this.outcome.visible) return;
     if (this.stats.visible && (code === 'Escape' || code === 'KeyT')) {
       this.stats.toggle(false);
       this.updateHud();
@@ -331,6 +515,13 @@ class Game {
       return;
     }
     if (this.tools.key(code, this.hoverNode)) {
+      this.updateHud();
+      return;
+    }
+    if (code === 'Escape') {
+      this.pausedBeforeMenu = this.clock.paused;
+      this.clock.paused = true;
+      this.pauseMenu.show();
       this.updateHud();
       return;
     }
@@ -365,7 +556,7 @@ class Game {
         this.menu.toggle(true);
         break;
       case 'KeyK':
-        this.audio.setVolumes(this.audio.sfxVolume, this.audio.musicVolume, !this.audio.muted);
+        this.applySettings({ ...this.settings, muted: !this.settings.muted });
         break;
       case 'PageUp':
         this.zoomAt(1, window.innerWidth / 2, window.innerHeight / 2);
@@ -407,7 +598,7 @@ class Game {
       debug: this.debug.visible,
       stats: this.stats?.visible ?? false,
       menu: this.menu?.visible ?? false,
-      muted: this.audio.muted,
+      muted: this.settings.muted,
       paused: this.clock.paused,
       speed: this.clock.speed,
     });
@@ -420,7 +611,17 @@ class Game {
 
     // Tastatur- und Randscrollen
     let [ax, ay] = this.input.scrollAxis();
-    if (this.mouseX >= 0 && !this.input.isDragging && document.hasFocus()) {
+    if (this.demo) {
+      // Langsamer Kameraschwenk über die Hintergrundpartie.
+      this.cam.x += (VIEW.DEMO_PAN_SPEED * dt) / 1000;
+      if (this.cam.x + this.cam.width >= worldPixelWidth(this.world.map) - 1) this.cam.x = 0;
+      clampCamera(this.cam, this.world.map);
+    } else if (
+      this.settings.edgeScroll &&
+      this.mouseX >= 0 &&
+      !this.input.isDragging &&
+      document.hasFocus()
+    ) {
       const dpr = window.devicePixelRatio || 1;
       const m = VIEW.EDGE_SCROLL_MARGIN * dpr;
       if (this.mouseX < m) ax = -1;
@@ -443,7 +644,7 @@ class Game {
       step(this.world, this.tickCommands());
       for (const e of this.world.events) this.frameEvents.push(e);
     }
-    if (this.frameEvents.length) {
+    if (this.frameEvents.length && !this.demo) {
       this.audio.events(this.frameEvents, this.world.map, 0, cameraListener(this.cam));
     }
     // In der Pause werden Befehle sofort angewendet (entspricht dem Beginn des nächsten Ticks).
@@ -486,7 +687,10 @@ class Game {
     this.stats.refresh();
     this.goals.root.hidden = this.debug.visible;
     if (!this.debug.visible) this.goals.update(this.world);
-    this.checkOutcome();
+    if (!this.demo) {
+      this.checkOutcome();
+      this.autosave();
+    }
     if (this.minimapVisible) this.minimap.draw(this.cam);
     this.frameMs = this.frameMs * 0.9 + (performance.now() - r0) * 0.1;
     this.debug.update(this.world, this.cam, {
@@ -502,5 +706,8 @@ class Game {
 }
 
 const game = new Game($('game') as HTMLCanvasElement);
+// Mit Spielparametern in der URL (geteilter Link, Entwicklung) geht es direkt ins Spiel.
+const params = new URLSearchParams(location.search);
+if (!['seed', 'size', 'players', 'mission'].some((k) => params.has(k))) game.enterMainMenu();
 // Für Entwicklertests im Browser (nur im Dev-Server).
 if (import.meta.env.DEV) (window as unknown as { game: Game }).game = game;
