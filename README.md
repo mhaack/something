@@ -20,7 +20,7 @@ URL-Parameter (bis zum Hauptmenü in Phase 8): `?seed=42&size=128&players=2`
 ## Steuerung
 
 Unten liegt die Werkzeugleiste (Auswählen, Flagge, Straße, Abreißen, Bauen, Bauhilfe,
-Stau-Anzeige, Minikarte, Hilfe, Debug), oben links die Temposteuerung. `F1` öffnet die vollständige
+Stau-Anzeige, Minikarte, Statistik, Hilfe, Debug), oben links die Temposteuerung. `F1` öffnet die vollständige
 Tastenübersicht im Spiel.
 
 | Aktion | Eingabe |
@@ -36,6 +36,7 @@ Tastenübersicht im Spiel.
 | Zoom (4 Stufen) | Mausrad, Bild↑/Bild↓ |
 | Minikarte | Klicken/Ziehen springt zur Position, `M` blendet ein/aus |
 | Pause / Tempo 1x–8x | Leertaste / `+` `−` |
+| Statistik (Waren, Verlauf, Siedler, Werkzeug-Prioritäten) | `T` |
 | Hilfe / Debug | `F1` / `F3` |
 | Neue Zufallskarte | `N` |
 

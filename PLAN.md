@@ -163,3 +163,14 @@ STATUS.md und Commit.
 - A28: Der Geologe wird zu einer Flagge geschickt (braucht Träger + Hammer), macht
   `GEOLOGIST.SURVEYS` Probebohrungen an zufälligen freien Knoten im Radius und stellt Schilder
   auf (nichts / wenig / viel). Schilder verschwinden nach `SIGN_LIFETIME_TICKS`.
+- A29: Werkzeugschmiede: Eisen + Kohle → ein Werkzeug je Zyklus. Die Wahl folgt einem gewichteten
+  Rundlauf über die Prioritätsregler (0–10) des Spielers: Werkzeuge entstehen im Verhältnis
+  ihrer Prioritäten. Stehen alle auf 0, ruht die Schmiede („Keine Werkzeuge gewünscht“).
+- A30: Waffenschmiede: Eisen + Kohle → abwechselnd Schwert und Schild. Münzprägerei: Golderz +
+  Kohle → Münzen (die Ware „Gold“ bleibt vorerst ungenutzt). Schmelzer und Münzpräger brauchen
+  einen Schmelztiegel, der Werkzeugschmied eine Zange, der Waffenschmied einen Hammer.
+- A31: Produktion und Verbrauch laufen über `src/sim/economy.ts` (Warenbuch + Statistik). Alle
+  `STATS.SAMPLE_INTERVAL_TICKS` wird eine Stichprobe (Bestand, kumulierte Produktion/Verbrauch)
+  gespeichert, höchstens `STATS.MAX_SAMPLES` (gleitendes Fenster von 1 Stunde).
+- A32: Statistik-Diagramm: eine Achse, höchstens 4 Waren gleichzeitig, Kategoriefarben gegen den
+  Panel-Hintergrund geprüft; Umschalter zwischen Bestand und Produktion pro Minute.

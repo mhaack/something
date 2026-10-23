@@ -1,6 +1,24 @@
 # STATUS
 
-## Aktuelle Phase: 4 abgeschlossen
+## Aktuelle Phase: 5 abgeschlossen
+
+### Erledigt (Phase 5)
+- Eisenschmelze (Eisenerz + Kohle → Eisen), Münzprägerei (Golderz + Kohle → Münzen),
+  Werkzeugschmiede (Eisen + Kohle → Werkzeug nach Prioritätsliste), Waffenschmiede
+  (Eisen + Kohle → Schwert/Schild im Wechsel). Neue Berufe Schmelzer, Münzpräger,
+  Werkzeugschmied, Waffenschmied mit eigenen Figuren; Gebäudegrafik mit Esse und Glut.
+- Berufe entstehen aus Träger + Werkzeug (seit Phase 3); fehlt das Werkzeug, bleibt der
+  Arbeitsplatz offen und die Statistik zeigt ihn unter „Fehlende Werkzeuge“.
+- Zentrale Buchung von Produktion und Verbrauch, Statistik-Stichproben im Weltzustand.
+- Statistik-Fenster (Taste `T`, Leistenknopf): Warentabelle (Bestand/hergestellt/verbraucht),
+  Verlaufsdiagramm (Bestand oder Produktion pro Minute, bis zu 4 Waren, Legende, direkte
+  Beschriftung, Fadenkreuz mit Tooltip), Siedler nach Beruf, fehlende Werkzeuge, Waffenbestand,
+  Prioritätsregler für alle Werkzeuge.
+- Tests (74): Schmelze, Münzprägerei, Waffenschmiede, Werkzeugschmiede nach Priorität und
+  im Stillstand, Verteilung im Verhältnis der Prioritäten, fehlender Beruf durch neue Werkzeuge,
+  Statistik-Bilanz und Begrenzung.
+
+## Davor: Phase 4
 
 ### Erledigt (Phase 4)
 - Nahrungsgebäude: Fischer (Fischbestand an Küsten), Bauernhof (sät Felder, die in Stufen reifen,
@@ -91,9 +109,9 @@
 - Browser (Chromium headless, 1280×720, 256×256-Karte, 8x-Tempo, ~440 Siedler): 60 FPS,
   ca. 1,8 ms Renderzeit pro Frame.
 
-### Offen / nächste Schritte (Phase 5)
-- Eisenschmelze, Goldschmelze/Münzprägerei, Werkzeugschmiede mit Prioritätsliste,
-  Waffenschmiede, Statistik-Fenster.
+### Offen / nächste Schritte (Phase 6)
+- Territorium, Militärgebäude (Wachhütte, Wachturm, Festung), Soldaten mit Rängen,
+  Beförderung durch Münzen, Angriff und Kampf.
 
 ### Bekannte Punkte
 - Abgerissene Gebäude verschwinden sofort (Brand-Animation folgt mit dem Militär in Phase 6).
@@ -104,4 +122,4 @@
 - Siedler laufen auf Straßen durcheinander hindurch (kein Ausweichen), wie im Original.
 
 ### Annahmen
-Siehe PLAN.md, Abschnitt 5 (A1–A28).
+Siehe PLAN.md, Abschnitt 5 (A1–A32).
