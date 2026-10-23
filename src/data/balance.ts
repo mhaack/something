@@ -361,3 +361,55 @@ export const MILITARY = {
   /** Brenndauer eines zerstörten Gebäudes (nur Anzeige). */
   FIRE_TICKS: 400,
 } as const;
+
+/** Startbedingungen: Faktor auf Startwaren und -personen im HQ. */
+export const STOCK_LEVELS = ['low', 'normal', 'high'] as const;
+export type StockLevel = (typeof STOCK_LEVELS)[number];
+export const STOCK_FACTOR: Record<StockLevel, number> = { low: 0.5, normal: 1, high: 2 };
+
+export const OUTCOME = {
+  /** Abstand der Prüfung auf Sieg und Niederlage. */
+  CHECK_INTERVAL_TICKS: 100,
+} as const;
+
+export const AI_LEVELS = ['easy', 'normal', 'hard'] as const;
+export type AiLevel = (typeof AI_LEVELS)[number];
+
+/** Gegner-KI: alle Stufen unterscheiden sich nur in diesen Werten (keine Vorteile). */
+export const AI = {
+  /** Denkpause zwischen zwei Entscheidungen. */
+  THINK_TICKS: { easy: 240, normal: 120, hard: 60 } as Record<AiLevel, number>,
+  /** Gleichzeitige Baustellen. */
+  MAX_SITES: { easy: 2, normal: 3, hard: 4 } as Record<AiLevel, number>,
+  /** Gleichzeitige Baustellen von Militärgebäuden. */
+  MAX_MILITARY_SITES: { easy: 1, normal: 1, hard: 2 } as Record<AiLevel, number>,
+  /** Mindestens so viele Militärgebäude je Wirtschaftsgebäude (Ausdehnungsdrang). */
+  MILITARY_SHARE: { easy: 0.2, normal: 0.3, hard: 0.35 } as Record<AiLevel, number>,
+  /** Frühester Angriff und Abstand zwischen Angriffsprüfungen. */
+  ATTACK_START_TICKS: { easy: 48000, normal: 24000, hard: 12000 } as Record<AiLevel, number>,
+  ATTACK_INTERVAL_TICKS: { easy: 4800, normal: 2400, hard: 1200 } as Record<AiLevel, number>,
+  /** Angriff nur, wenn eigene Stärke / Verteidigungsstärke mindestens so groß ist. */
+  ATTACK_RATIO: { easy: 2.5, normal: 1.6, hard: 1.2 } as Record<AiLevel, number>,
+  /** Passt die Werkzeugprioritäten an fehlende Berufe an. */
+  MANAGE_TOOLS: { easy: false, normal: true, hard: true } as Record<AiLevel, boolean>,
+  /** Bevorzugt Wachtürme und Festungen an Grenzen zu Gegnern. */
+  STRONG_FRONT: { easy: false, normal: true, hard: true } as Record<AiLevel, boolean>,
+  /** Bewertete Bauplätze je Entscheidung (Straßenplanung ist teuer). */
+  PLACE_TRIES: 4,
+  /** Anschlussflaggen, die je Bauplatz probiert werden. */
+  ROAD_TARGETS: 3,
+  /** Höchstlänge einer neuen Straße in Knoten. */
+  ROAD_MAX_LEN: 14,
+  /** Militärbauplätze höchstens so weit von der Grenze. */
+  BORDER_DIST: 3,
+  /** Holzfäller brauchen mindestens so viele Bäume im Radius, Steinbrüche so viele Felsen. */
+  MIN_TREES: 6,
+  MIN_ROCKS: 2,
+  /** Freie Felder um einen Bauernhof. */
+  MIN_FARM_SPACE: 8,
+  /** Werkzeugpriorität für dringend fehlende bzw. übrige Werkzeuge. */
+  TOOL_URGENT: 10,
+  TOOL_IDLE: 1,
+  /** Bergwerke werden erst gebaut, wenn so viele Lebensmittel im Lager sind oder Nahrung entsteht. */
+  MINE_MIN_FOOD: 4,
+} as const;

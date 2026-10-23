@@ -22,15 +22,19 @@ export function largeFootprint(world: World, node: number): number[] {
   return [node, neighbor(m, node, Dir.W), neighbor(m, node, Dir.NW), neighbor(m, node, Dir.NE)];
 }
 
-export function createHQ(world: World, player: Player): Building {
+/** Legt das Hauptquartier an; `factor` skaliert Startwaren und -personen (Startbedingungen). */
+export function createHQ(world: World, player: Player, factor = 1): Building {
   const map = world.map;
   const flagNode = neighbor(map, player.hqNode, Dir.SE);
   const flag = placeFlag(world, player.id, flagNode);
   const id = allocId(world);
   const stock = emptyWareCounts();
-  for (const [k, v] of Object.entries(START_STOCK.wares)) stock[k as keyof typeof stock] = v;
+  for (const [k, v] of Object.entries(START_STOCK.wares)) {
+    stock[k as keyof typeof stock] = Math.round(v * factor);
+  }
   const people = emptyJobCounts();
-  for (const [k, v] of Object.entries(START_STOCK.people)) people[k as Job] = v;
+  for (const [k, v] of Object.entries(START_STOCK.people))
+    people[k as Job] = Math.round(v * factor);
   const hq: Building = {
     id,
     type: 'hq',

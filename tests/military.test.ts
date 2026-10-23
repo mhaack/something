@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MILITARY } from '../src/data/balance';
+import { MILITARY, OUTCOME } from '../src/data/balance';
 import { Terrain } from '../src/data/terrain';
 import type { BuildingType } from '../src/data/buildings';
 import { buildSize } from '../src/sim/buildings';
@@ -185,6 +185,9 @@ describe('Angriff und Kampf', () => {
     cmd(w, { type: 'attack', player: 0, target, soldiers: 5 });
     runUntil(w, () => !w.buildings[target], 20000);
     expect(w.players[1].hq).toBe(0);
+    run(w, 2 * OUTCOME.CHECK_INTERVAL_TICKS);
+    expect(w.players[1].defeated).toBe(true);
+    expect(w.outcome).toMatchObject({ result: 'won', reason: 'goals' });
   });
 
   it('Kämpfe sind deterministisch', () => {

@@ -1,4 +1,13 @@
-import { BUILD, START, TRANSPORT } from '../data/balance';
+import {
+  BUILD,
+  START,
+  STOCK_FACTOR,
+  TRANSPORT,
+  type AiLevel,
+  type StockLevel,
+} from '../data/balance';
+import type { Goal } from '../data/missions';
+import { updateOutcome, type Outcome } from './outcome';
 import { requestWares } from './buildings';
 import { growTrees } from './trees';
 import type { ToolWare } from '../data/wares';
@@ -21,13 +30,17 @@ import { processRouteQueue, scheduleReroutes } from './routing';
 import { updateSettler } from './carriers';
 import { createHQ, requestWorkers, storeTick } from './store';
 
-export const WORLD_VERSION = 6;
+export const WORLD_VERSION = 7;
 
 export interface Player {
   id: number;
   /** Farbindex für das Rendering. */
   color: number;
   human: boolean;
+  /** KI-Stufe (null = Mensch bzw. passiv). */
+  ai: AiLevel | null;
+  /** Kein Lager und kein besetztes Militärgebäude mehr. */
+  defeated: boolean;
   /** Knoten des Hauptquartiers. */
   hqNode: number;
   /** Gebäude-ID des Hauptquartiers (0 = verloren). */
@@ -75,6 +88,25 @@ export interface World {
   fires: Fire[];
   /** Seit der letzten Gebietsberechnung eroberte Gebäude. */
   conquered: number[];
+  /** Spielmodus und Ziele. */
+  setup: GameSetup;
+  /** Ergebnis für den menschlichen Spieler (null = Spiel läuft). */
+  outcome: Outcome | null;
+}
+
+export interface GameSetup {
+  mode: 'free' | 'mission';
+  /** Missionsnummer (0 = freies Spiel). */
+  mission: number;
+  stock: StockLevel;
+  /** Siegbedingungen für Spieler 0 (leer = Endlosspiel). */
+  goals: Goal[];
+  /** Zeitlimit in Ticks (0 = keins). */
+  timeLimit: number;
+}
+
+export function defaultSetup(): GameSetup {
+  return { mode: 'free', mission: 0, stock: 'normal', goals: [{ type: 'conquer' }], timeLimit: 0 };
 }
 
 export interface NewWorldOptions {
@@ -82,16 +114,28 @@ export interface NewWorldOptions {
   size: number;
   /** Gesamtzahl Spieler inkl. Mensch. */
   players: number;
+  /** KI-Stufe je Gegner (fehlende: `normal`). */
+  ai?: AiLevel[];
+  setup?: Partial<GameSetup>;
 }
 
 export function createWorld(opts: NewWorldOptions): World {
   const players = Math.max(START.MIN_PLAYERS, Math.min(START.MAX_PLAYERS, opts.players));
   const { map, starts } = generateMap({ seed: opts.seed, size: opts.size, players });
-  return createWorldFromMap(String(opts.seed), map, starts);
+  return createWorldFromMap(String(opts.seed), map, starts, opts.setup, opts.ai);
 }
 
 /** Erzeugt eine Welt auf einer vorgegebenen Karte (auch für Tests und Szenarien). */
-export function createWorldFromMap(seed: string, map: GameMap, starts: number[]): World {
+export function createWorldFromMap(
+  seed: string,
+  map: GameMap,
+  starts: number[],
+  setup: Partial<GameSetup> = {},
+  ai: readonly AiLevel[] = [],
+): World {
+  const fullSetup: GameSetup = { ...defaultSetup(), ...setup };
+  // Allein gibt es niemanden zu besiegen: dann nur die übrigen Ziele.
+  if (starts.length < 2) fullSetup.goals = fullSetup.goals.filter((g) => g.type !== 'conquer');
   const n = map.width * map.height;
   const world: World = {
     version: WORLD_VERSION,
@@ -104,6 +148,8 @@ export function createWorldFromMap(seed: string, map: GameMap, starts: number[])
       id,
       color: id,
       human: id === 0,
+      ai: id === 0 ? null : (ai[id - 1] ?? 'normal'),
+      defeated: false,
       hqNode,
       hq: 0,
       toolPriority: defaultToolPriority(),
@@ -127,8 +173,10 @@ export function createWorldFromMap(seed: string, map: GameMap, starts: number[])
     territoryDirty: false,
     fires: [],
     conquered: [],
+    setup: fullSetup,
+    outcome: null,
   };
-  for (const p of world.players) createHQ(world, p);
+  for (const p of world.players) createHQ(world, p, STOCK_FACTOR[fullSetup.stock]);
   recomputeTerritory(world);
   return world;
 }
@@ -160,6 +208,7 @@ export function step(world: World, commands: readonly Command[] = []): void {
   scheduleReroutes(world);
   processRouteQueue(world);
   if (world.tick % TRANSPORT.WORKER_REQUEST_INTERVAL_TICKS === 0) requestWorkers(world);
+  updateOutcome(world);
   if (world.tick % TRANSPORT.TRAFFIC_WINDOW_TICKS === TRANSPORT.TRAFFIC_WINDOW_TICKS - 1) {
     for (const id in world.roads) {
       const r = world.roads[id];
