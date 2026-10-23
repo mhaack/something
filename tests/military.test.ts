@@ -169,7 +169,16 @@ describe('Angriff und Kampf', () => {
     expect(availableAttackers(w, 0, w.buildings[b])).toBeGreaterThan(0);
     const before = countWares(w, 0).planks + countWares(w, 1).planks;
     cmd(w, { type: 'attack', player: 0, target: b, soldiers: 4 });
-    runUntil(w, () => w.buildings[b].owner === 0, 15000);
+    const seen = new Set<string>();
+    runUntil(
+      w,
+      () => {
+        for (const e of w.events) seen.add(e.type);
+        return w.buildings[b].owner === 0;
+      },
+      15000,
+    );
+    for (const t of ['hit', 'death', 'conquered']) expect(seen.has(t), t).toBe(true);
     run(w, 5);
     expect(w.owner[w.buildings[b].node]).toBe(0);
     expect(w.buildings[victim]).toBeUndefined();

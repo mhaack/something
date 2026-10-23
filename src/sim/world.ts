@@ -9,6 +9,7 @@ import {
 } from '../data/balance';
 import type { Goal } from '../data/missions';
 import { updateOutcome, type Outcome } from './outcome';
+import type { SimEvent } from './events';
 import { requestWares } from './buildings';
 import { growTrees } from './trees';
 import type { ToolWare } from '../data/wares';
@@ -31,7 +32,7 @@ import { processRouteQueue, scheduleReroutes } from './routing';
 import { updateSettler } from './carriers';
 import { createHQ, requestWorkers, storeTick } from './store';
 
-export const WORLD_VERSION = 8;
+export const WORLD_VERSION = 9;
 
 export interface Player {
   id: number;
@@ -95,6 +96,8 @@ export interface World {
   setup: GameSetup;
   /** Ergebnis für den menschlichen Spieler (null = Spiel läuft). */
   outcome: Outcome | null;
+  /** Ereignisse des letzten Ticks (Anzeige und Ton). */
+  events: SimEvent[];
 }
 
 export interface GameSetup {
@@ -179,6 +182,7 @@ export function createWorldFromMap(
     conquered: [],
     setup: fullSetup,
     outcome: null,
+    events: [],
   };
   for (const p of world.players) createHQ(world, p, STOCK_FACTOR[fullSetup.stock]);
   recomputeTerritory(world);
@@ -191,6 +195,7 @@ export function allocId(world: World): number {
 
 /** Ein Simulationsschritt. */
 export function step(world: World, commands: readonly Command[] = []): void {
+  world.events = [];
   for (const c of commands) applyCommand(world, c);
   // Schlüssel vorab sammeln: Während des Ticks entstehen und verschwinden Entities.
   for (const id of Object.keys(world.buildings)) {

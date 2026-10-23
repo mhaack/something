@@ -8,6 +8,7 @@ import { WARE_TYPES } from '../data/wares';
 import type { Building, Settler } from './entities';
 import { SLOT_BUILDING } from './entities';
 import { recordConsumed } from './economy';
+import { emit } from './events';
 import { removeFlag } from './flags';
 import { Dir, gridDistance, nodeX, nodeY } from './geometry';
 import { nextFloat } from './rng';
@@ -148,6 +149,7 @@ export function militaryTick(world: World): void {
     }
     if (k < 0) continue;
     b.soldiers[k]++;
+    emit(world, 'promoted', b.node, b.owner, b.soldiers[k]);
     b.stock.coins--;
     recordConsumed(world, b.owner, 'coins');
   }
@@ -229,6 +231,7 @@ export function launchAttack(
     }
     if (sent >= count) break;
   }
+  if (sent > 0) emit(world, 'attack', target.node, player, target.owner);
   return sent;
 }
 
@@ -352,12 +355,15 @@ function duelRound(world: World, s: Settler): void {
   const pa = MILITARY.ATTACK[s.rank] / (MILITARY.ATTACK[s.rank] + MILITARY.ATTACK[opp.rank]);
   if (nextFloat(world.rng) < pa) opp.hp--;
   else s.hp--;
+  emit(world, 'hit', opp.node, s.owner);
   if (opp.hp <= 0) {
+    emit(world, 'death', opp.node, opp.owner);
     deleteSettler(world, opp);
     s.duel = 0;
     s.state = 'atkWait';
     s.wait = 1;
   } else if (s.hp <= 0) {
+    emit(world, 'death', s.node, s.owner);
     deleteSettler(world, s);
     opp.duel = 0;
     opp.state = 'defReturn';
@@ -422,6 +428,7 @@ function transferBuilding(world: World, b: Building, newOwner: number): void {
 }
 
 function conquer(world: World, target: Building, s: Settler): void {
+  emit(world, 'conquered', target.node, s.owner, target.owner);
   if (target.type === 'hq') {
     destroyBuilding(world, target);
     deleteSettler(world, s);
@@ -455,6 +462,7 @@ function conquer(world: World, target: Building, s: Settler): void {
  * gehen ins nächste Lager des Besitzers; beim HQ ohne weiteres Lager gehen sie verloren.
  */
 export function destroyBuilding(world: World, b: Building): void {
+  emit(world, 'burned', b.node, b.owner);
   world.fires.push({ node: b.node, type: b.type, until: world.tick + MILITARY.FIRE_TICKS });
   if (b.type !== 'hq') {
     const target = findNearestStoreAnywhere(world, b.owner, b.node, b.id);

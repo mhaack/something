@@ -17,3 +17,12 @@ describe('world', () => {
     expect(createWorld({ seed: 1, size: 64, players: 0 }).players).toHaveLength(1);
   });
 });
+
+describe('Ereignisse', () => {
+  it('werden pro Tick gesammelt und am Tickanfang geleert', () => {
+    const w = createWorld({ seed: 11, size: 64, players: 1 });
+    w.events.push({ type: 'built', node: 1, player: 0, data: 0 });
+    step(w);
+    expect(w.events.find((e) => e.node === 1)).toBeUndefined();
+  });
+});

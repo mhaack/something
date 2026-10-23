@@ -19,6 +19,7 @@ import { standSoldier } from './military';
 import { chooseTool, hasToolOrders, recordConsumed, recordProduced } from './economy';
 import { isMatureField, isMatureTree, plantTree, removeObject, sowField } from './trees';
 import { isMinableTerrain, isPassable } from './map';
+import { emit } from './events';
 import { allocId, type World } from './world';
 
 function home(world: World, s: Settler): Building | undefined {
@@ -303,9 +304,11 @@ function finishHarvest(world: World, s: Settler, b: Building): void {
   const map = world.map;
   if (def.kind === 'woodcutter' && isMatureTree(world, t)) {
     removeObject(world, t);
+    emit(world, 'chop', t, b.owner);
     produce(world, s, b, 'wood');
   } else if (def.kind === 'quarry' && map.objects[t] === MapObject.Rock) {
     map.objectData[t]--;
+    emit(world, 'stone', t, b.owner);
     if (map.objectData[t] <= 0) removeObject(world, t);
     else world.mapRevision++;
     produce(world, s, b, 'stone');
@@ -317,6 +320,7 @@ function finishHarvest(world: World, s: Settler, b: Building): void {
   } else if (def.kind === 'farm') {
     if (isMatureField(world, t)) {
       removeObject(world, t);
+      emit(world, 'harvest', t, b.owner);
       produce(world, s, b, 'wheat');
     } else if (isFieldSpot(world, b, t)) {
       sowField(world, t);
@@ -350,6 +354,7 @@ function placeSign(world: World, s: Settler): void {
   const r = map.resources[n];
   const found = r !== Resource.None && r !== Resource.Fish && map.resourceAmounts[n] > 0;
   world.signs = world.signs.filter((g) => g.node !== n);
+  if (found) emit(world, 'found', n, s.owner, r);
   world.signs.push({
     node: n,
     owner: s.owner,
@@ -482,6 +487,7 @@ function buildStep(world: World, s: Settler, b: Building): void {
     b.worker = 0;
     b.status = 'ok';
     world.mapRevision++;
+    emit(world, 'built', b.node, b.owner);
     return releaseWorker(world, s.id);
   }
   const use = (type: 'planks' | 'stone'): void => {

@@ -4,6 +4,7 @@
  */
 import { OUTCOME } from '../data/balance';
 import type { Goal } from '../data/missions';
+import { emit } from './events';
 import { isStore } from './store';
 import { claimsTerritory } from './territory';
 import type { World } from './world';
@@ -44,7 +45,10 @@ export function goalMet(world: World, goal: Goal): boolean {
 export function updateOutcome(world: World): void {
   if (world.tick % OUTCOME.CHECK_INTERVAL_TICKS !== 0) return;
   for (const p of world.players) {
-    if (!p.defeated && isDefeated(world, p.id)) p.defeated = true;
+    if (!p.defeated && isDefeated(world, p.id)) {
+      p.defeated = true;
+      emit(world, 'defeated', p.hqNode, p.id);
+    }
   }
   if (world.outcome) return;
   const end = (result: Outcome['result'], reason: Outcome['reason']): void => {
