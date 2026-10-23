@@ -179,8 +179,8 @@ export const START_STOCK = {
     rollingpin: 1,
     tongs: 1,
     crucible: 1,
-    sword: 0,
-    shield: 0,
+    sword: 4,
+    shield: 4,
   },
   people: {
     carrier: 30,
@@ -379,6 +379,8 @@ export type AiLevel = (typeof AI_LEVELS)[number];
 export const AI = {
   /** Denkpause zwischen zwei Entscheidungen. */
   THINK_TICKS: { easy: 240, normal: 120, hard: 60 } as Record<AiLevel, number>,
+  /** Versatz je Spieler, damit nicht alle KIs im selben Tick denken. */
+  THINK_OFFSET: 7,
   /** Gleichzeitige Baustellen. */
   MAX_SITES: { easy: 2, normal: 3, hard: 4 } as Record<AiLevel, number>,
   /** Gleichzeitige Baustellen von Militärgebäuden. */
@@ -394,6 +396,10 @@ export const AI = {
   MANAGE_TOOLS: { easy: false, normal: true, hard: true } as Record<AiLevel, boolean>,
   /** Bevorzugt Wachtürme und Festungen an Grenzen zu Gegnern. */
   STRONG_FRONT: { easy: false, normal: true, hard: true } as Record<AiLevel, boolean>,
+  /** Soldaten, die nicht für neue Militärgebäude verplant werden (Verteidigung des Lagers). */
+  HQ_RESERVE: { easy: 0, normal: 1, hard: 2 } as Record<AiLevel, number>,
+  /** Ein Militärgebäude gilt als Hinterland, wenn auch dieser Rand um sein Gebiet gedeckt ist. */
+  INTERIOR_MARGIN: 2,
   /** Bewertete Bauplätze je Entscheidung (Straßenplanung ist teuer). */
   PLACE_TRIES: 4,
   /** Anschlussflaggen, die je Bauplatz probiert werden. */
@@ -402,14 +408,18 @@ export const AI = {
   ROAD_MAX_LEN: 14,
   /** Militärbauplätze höchstens so weit von der Grenze. */
   BORDER_DIST: 3,
+  /** Fehlen Berge: Wert eines Bergknotens im neuen Gebiet und Abzug je Schritt Abstand zum Berg. */
+  MOUNTAIN_BONUS: 3,
+  MOUNTAIN_PULL: 1.5,
   /** Holzfäller brauchen mindestens so viele Bäume im Radius, Steinbrüche so viele Felsen. */
   MIN_TREES: 6,
   MIN_ROCKS: 2,
+  MIN_FISH: 3,
   /** Freie Felder um einen Bauernhof. */
   MIN_FARM_SPACE: 8,
   /** Werkzeugpriorität für dringend fehlende bzw. übrige Werkzeuge. */
   TOOL_URGENT: 10,
-  TOOL_IDLE: 1,
+  TOOL_IDLE: 0,
   /** Bergwerke werden erst gebaut, wenn so viele Lebensmittel im Lager sind oder Nahrung entsteht. */
   MINE_MIN_FOOD: 4,
 } as const;
