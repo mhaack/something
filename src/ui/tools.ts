@@ -11,7 +11,7 @@ import { buildingIcon, wareIcon } from './icons';
 import { InfoPanel, Popup, Toast, el, type MenuItem } from './panels';
 import { BUILDINGS, BUILD_MENU, sizeFits, type BuildingType } from '../data/buildings';
 import type { WareType } from '../data/wares';
-import { buildSize, canBuild } from '../sim/buildings';
+import { buildSize, canBuild, canSupply } from '../sim/buildings';
 import type { Building } from '../sim/entities';
 import { searchFlags } from '../sim/routing';
 import { isStore } from '../sim/store';
@@ -177,8 +177,18 @@ export class Tools {
           : t('tip.noBuild');
         break;
       }
-      case 'select':
+      case 'select': {
+        const sign = w.signs.find((g) => g.node === node && g.until > w.tick);
+        if (sign) {
+          const res = tDyn(`resource.${sign.resource}`);
+          this.hoverInfo.tip = t('tip.sign', {
+            what: sign.resource
+              ? t(sign.rich ? 'tip.signRich' : 'tip.signPoor', { res })
+              : t('tip.signNone'),
+          });
+        }
         break;
+      }
     }
   }
 
@@ -293,6 +303,7 @@ export class Tools {
         label: tDyn(`building.${type}`),
         key: cost,
         icon: buildingIcon(type, this.world.players[this.me].color),
+        section: tDyn(`group.${def.group}`),
         action: () => this.placeBuilding(node, type),
         onHover: (on) => (this.ghostBuilding = on ? { node, type } : null),
       });
@@ -304,6 +315,17 @@ export class Tools {
     const items = this.buildItems(node);
     if (items.length === 0) return this.host.toast.show(t('tip.noBuild'));
     this.host.popup.show(cssX, cssY, t('tool.build'), items, () => (this.ghostBuilding = null));
+  }
+
+  sendGeologist(node: number): void {
+    const w = this.world;
+    const fid = w.nodeFlag[node];
+    if (!fid) return;
+    const ok = Object.values(w.buildings).some(
+      (b) => b.owner === this.me && isStore(b) && canSupply(b, 'geologist'),
+    );
+    if (!ok) return this.host.toast.show(t('msg.noGeologist'));
+    this.host.enqueue({ type: 'sendGeologist', player: this.me, flag: fid });
   }
 
   sendWare(node: number): void {
@@ -365,6 +387,11 @@ export class Tools {
         label: t('action.buildRoad'),
         key: 'R',
         action: () => this.startRoad(node, true),
+      });
+      items.push({
+        label: t('action.sendGeologist'),
+        key: 'J',
+        action: () => this.sendGeologist(node),
       });
       items.push({ label: t('action.sendWare'), key: 'G', action: () => this.sendWare(node) });
       if (!f.building) {
@@ -444,6 +471,9 @@ export class Tools {
       case 'KeyG':
         if (hoverNode >= 0) this.sendWare(hoverNode);
         return true;
+      case 'KeyJ':
+        if (hoverNode >= 0) this.sendGeologist(hoverNode);
+        return true;
       case 'KeyH':
         this.buildHelp = !this.buildHelp;
         return true;
@@ -510,7 +540,13 @@ export class Tools {
               ]),
             );
           }
-          rows.push(el('div', { className: 'panel-sub', text: t('panel.inputs') }), grid);
+          rows.push(
+            el('div', {
+              className: 'panel-sub',
+              text: def.kind === 'mine' ? t('panel.food') : t('panel.inputs'),
+            }),
+            grid,
+          );
         }
         if (def.output) {
           rows.push(

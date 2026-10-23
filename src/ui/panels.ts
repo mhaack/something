@@ -9,6 +9,8 @@ export interface MenuItem {
   disabled?: boolean;
   /** Maus über dem Eintrag (für Vorschauen). */
   onHover?: (on: boolean) => void;
+  /** Gruppenüberschrift; bei Wechsel wird eine Zwischenzeile eingefügt. */
+  section?: string;
 }
 
 /** Kontextmenü an der Mausposition. */
@@ -40,7 +42,12 @@ export class Popup {
     h.className = 'panel-title';
     h.textContent = title;
     this.el.append(h);
+    let section: string | undefined;
     for (const it of items) {
+      if (it.section && it.section !== section) {
+        section = it.section;
+        this.el.append(el('div', { className: 'menu-section', text: section }));
+      }
       const b = document.createElement('button');
       if (it.icon) b.append(it.icon);
       b.append(el('span', { className: 'label', text: it.label }));

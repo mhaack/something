@@ -552,3 +552,16 @@ button.panel-action {
 button.panel-action:hover {
   filter: brightness(1.2);
 }
+
+.menu-section {
+  margin-top: 4px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+}
+
+#popup {
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
+}
