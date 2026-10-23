@@ -94,3 +94,80 @@ export const VIEW = {
   /** Pixel pro Knoten der Minikarte (horizontal doppelt, wegen 2:1-Kachelseitenverhältnis). */
   MINIMAP_MAX_PIXELS: 192,
 } as const;
+
+export const TRANSPORT = {
+  /** Mindestabstand zwischen zwei Flaggen in Knotenschritten. */
+  FLAG_MIN_DISTANCE: 2,
+  /** Warenpuffer einer Flagge. */
+  FLAG_CAPACITY: 8,
+  /** Notfall-Überlauf einer Flagge gegen Deadlocks in vollen Zyklen. */
+  FLAG_OVERFLOW: 2,
+  /** Wartezeit einer Ware in Ticks, ab der sie den Überlauf der Zielflagge nutzen darf. */
+  OVERFLOW_WAIT_TICKS: 400,
+  /** Ticks pro Schritt auf ebener Strecke. */
+  WALK_TICKS_PER_STEP: 10,
+  /** Faktor für steile Schritte bergauf bzw. bergab (Höhendifferenz ≥ ROAD_STEEP_SLOPE). */
+  STEEP_UPHILL_FACTOR: 1.8,
+  STEEP_DOWNHILL_FACTOR: 1.2,
+  /** Zusätzlicher Faktor pro Höheneinheit bergauf (auch auf flachen Straßen). */
+  UPHILL_PER_HEIGHT: 0.06,
+  /** Ticks zum Aufnehmen bzw. Ablegen einer Ware. */
+  PICKUP_TICKS: 4,
+  DROP_TICKS: 4,
+  /** Routing: Zusatzkosten (in Schritt-Ticks) pro wartender Ware an einer Flagge in Richtung Straße. */
+  CONGESTION_COST: 12,
+  /** Höchstzahl Routenberechnungen pro Tick (gedeckelt). */
+  ROUTES_PER_TICK: 40,
+  /** Intervall, in dem wartende Waren ihre Route mit aktuellen Stau-Kosten neu prüfen. */
+  REROUTE_INTERVAL_TICKS: 100,
+  /** Esel: Auswertungsfenster und Mindestzahl transportierter Waren für „stark befahren". */
+  TRAFFIC_WINDOW_TICKS: 1200,
+  BUSY_ROAD_THRESHOLD: 12,
+  /** Intervall, in dem fehlende Träger/Esel angefordert werden. */
+  WORKER_REQUEST_INTERVAL_TICKS: 20,
+  /** Höchstzahl Knotenexpansionen für Querfeldein-Wege (A*). */
+  FREE_WALK_MAX_EXPANSIONS: 20000,
+} as const;
+
+export const STORE = {
+  /** Gebietsradius des Hauptquartiers (bis zum Territoriumssystem in Phase 6). */
+  HQ_RADIUS: 9,
+  /** Ticks zwischen zwei Waren, die ein Lager auf seine Flagge legt. */
+  OUTPUT_TICKS: 10,
+  /** Ein neuer Träger entsteht im Lager alle n Ticks. */
+  CARRIER_SPAWN_TICKS: 600,
+  /** Obergrenze für automatisch entstehende Träger pro Lager. */
+  CARRIER_SPAWN_MAX: 60,
+} as const;
+
+/** Startbestand des Hauptquartiers. */
+export const START_STOCK = {
+  wares: {
+    wood: 16,
+    planks: 40,
+    stone: 30,
+    fish: 8,
+    bread: 8,
+    meat: 8,
+    coal: 12,
+    ironore: 8,
+    iron: 6,
+    hammer: 8,
+    shovel: 4,
+    axe: 4,
+    saw: 2,
+    pick: 4,
+    rod: 2,
+    scythe: 2,
+    cleaver: 1,
+    rollingpin: 1,
+    tongs: 1,
+    crucible: 1,
+    sword: 0,
+    shield: 0,
+  },
+  people: {
+    carrier: 30,
+    donkey: 4,
+  },
+} as const;
