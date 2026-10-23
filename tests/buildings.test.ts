@@ -177,3 +177,20 @@ describe('Determinismus mit Gebäuden', () => {
     expect(serializeWorld(make())).toBe(serializeWorld(make()));
   });
 });
+
+describe('Abriss', () => {
+  it('fertige Gebäude brennen nieder, Baustellen verschwinden ohne Feuer', () => {
+    const w = flatWorld();
+    const a = node(w, 24, 18);
+    const b = node(w, 16, 18);
+    cmd(w, { type: 'placeBuilding', player: 0, node: a, building: 'woodcutter' });
+    cmd(w, { type: 'placeBuilding', player: 0, node: b, building: 'woodcutter' });
+    const done = w.nodeBuilding[a];
+    w.buildings[done].site = null;
+    cmd(w, { type: 'removeBuilding', player: 0, building: w.nodeBuilding[b] });
+    expect(w.fires).toHaveLength(0);
+    cmd(w, { type: 'removeBuilding', player: 0, building: done });
+    expect(w.fires).toEqual([expect.objectContaining({ node: a, type: 'woodcutter' })]);
+    expect(w.buildings[done]).toBeUndefined();
+  });
+});
