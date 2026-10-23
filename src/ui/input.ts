@@ -6,6 +6,8 @@ export interface InputHandlers {
   onMove(deviceX: number, deviceY: number): void;
   onClick(deviceX: number, deviceY: number, button: number): void;
   onKey(code: string, e: KeyboardEvent): void;
+  /** Maus verlässt das Spielfeld (z. B. über ein Panel). */
+  onLeave(): void;
 }
 
 const DRAG_THRESHOLD = 4;
@@ -48,6 +50,9 @@ export class Input {
       this.lastX = e.clientX;
       this.lastY = e.clientY;
     });
+    el.addEventListener('pointerleave', () => {
+      if (!this.dragging) this.h.onLeave();
+    });
     el.addEventListener('pointerup', (e) => {
       if (this.dragging && !this.moved) {
         this.h.onClick(e.clientX * dpr(), e.clientY * dpr(), this.dragButton);
@@ -64,12 +69,24 @@ export class Input {
     );
     window.addEventListener('keydown', (e) => {
       if (e.target instanceof HTMLInputElement) return;
-      if (e.code === 'F3' || e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
+      if (
+        e.code === 'F1' ||
+        e.code === 'F3' ||
+        e.code === 'Space' ||
+        e.code === 'Backspace' ||
+        e.code.startsWith('Arrow')
+      ) {
+        e.preventDefault();
+      }
       if (!this.keys.has(e.code)) this.h.onKey(e.code, e);
       this.keys.add(e.code);
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
     window.addEventListener('blur', () => this.keys.clear());
+  }
+
+  get isDragging(): boolean {
+    return this.dragging && this.moved;
   }
 
   /** Scrollrichtung aus gedrückten Tasten (-1..1 je Achse). */

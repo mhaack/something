@@ -2,6 +2,8 @@ import { VIEW } from '../data/balance';
 
 export interface MenuItem {
   label: string;
+  /** Tastenkürzel zur Anzeige. */
+  key?: string;
   action: () => void;
   disabled?: boolean;
 }
@@ -27,7 +29,8 @@ export class Popup {
     this.el.append(h);
     for (const it of items) {
       const b = document.createElement('button');
-      b.textContent = it.label;
+      b.append(el('span', { text: it.label }));
+      if (it.key) b.append(el('kbd', { text: it.key }));
       b.disabled = !!it.disabled;
       b.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -47,28 +50,41 @@ export class Popup {
   }
 }
 
-/** Infofenster, dessen Inhalt regelmäßig neu aufgebaut wird. */
+/** Infofenster mit festem Kopf (Titel, Schließen) und regelmäßig neu aufgebautem Inhalt. */
 export class InfoPanel {
-  private render: (() => HTMLElement | null) | null = null;
+  private render: (() => HTMLElement[] | null) | null = null;
   private last = 0;
+  private title: HTMLElement;
+  private body: HTMLElement;
 
-  constructor(private el: HTMLElement) {
-    el.hidden = true;
+  constructor(
+    private root: HTMLElement,
+    closeIcon: HTMLElement,
+    closeLabel: string,
+  ) {
+    root.hidden = true;
+    this.title = el('div', { className: 'panel-title' });
+    const close = el('button', { className: 'panel-close' }, [closeIcon]);
+    close.title = closeLabel;
+    close.addEventListener('click', () => this.close());
+    this.body = el('div', { className: 'panel-body' });
+    root.append(el('div', { className: 'panel-head' }, [this.title, close]), this.body);
   }
 
   get visible(): boolean {
-    return !this.el.hidden;
+    return !this.root.hidden;
   }
 
-  open(render: () => HTMLElement | null): void {
+  open(title: string, render: () => HTMLElement[] | null): void {
+    this.title.textContent = title;
     this.render = render;
-    this.el.hidden = false;
+    this.root.hidden = false;
     this.refresh(true);
   }
 
   close(): void {
     this.render = null;
-    this.el.hidden = true;
+    this.root.hidden = true;
   }
 
   refresh(force = false): void {
@@ -78,7 +94,7 @@ export class InfoPanel {
     this.last = now;
     const content = this.render();
     if (!content) return this.close();
-    this.el.replaceChildren(content);
+    this.body.replaceChildren(...content);
   }
 }
 
@@ -92,6 +108,9 @@ export class Toast {
 
   show(text: string): void {
     this.el.textContent = text;
+    this.el.classList.remove('pop');
+    void this.el.offsetWidth;
+    this.el.classList.add('pop');
     this.el.hidden = false;
     clearTimeout(this.timer);
     this.timer = window.setTimeout(() => (this.el.hidden = true), VIEW.TOAST_MS);

@@ -12,6 +12,8 @@ import { Renderer } from './render/renderer';
 import type { Command, ReplayEntry } from './sim/commands';
 import { applyCommand } from './sim/commandHandlers';
 import { createWorld, step, type World } from './sim/world';
+import { Hud } from './ui/hud';
+import { icon } from './ui/icons';
 import { InfoPanel, Popup, Toast } from './ui/panels';
 import { Tools } from './ui/tools';
 import { GameClock } from './ui/clock';
@@ -50,7 +52,8 @@ class Game {
   replay: ReplayEntry[] = [];
   hoverNode = -1;
   popup = new Popup($('popup'));
-  info = new InfoPanel($('info'));
+  info = new InfoPanel($('info'), icon('close'), t('action.close'));
+  hud: Hud;
   toast = new Toast($('toast'));
   tools: Tools;
   private mouseX = -1;
@@ -63,6 +66,17 @@ class Game {
 
   constructor(private canvas: HTMLCanvasElement) {
     this.world = createWorld(readOptions());
+    this.hud = new Hud(document.body, {
+      setMode: (m) => this.tools.setMode(m),
+      toggleBuildHelp: () => this.onKey('KeyH'),
+      toggleCongestion: () => this.onKey('KeyV'),
+      toggleMinimap: () => this.onKey('KeyM'),
+      toggleHelp: () => this.onKey('F1'),
+      toggleDebug: () => this.onKey('F3'),
+      togglePause: () => this.onKey('Space'),
+      slower: () => this.onKey('Minus'),
+      faster: () => this.onKey('Equal'),
+    });
     this.tools = new Tools({
       world: () => this.world,
       player: 0,
@@ -70,11 +84,12 @@ class Game {
       popup: this.popup,
       info: this.info,
       toast: this.toast,
-      setHint: (text) => {
-        $('help').textContent = text ?? t('hud.help');
-        $('help').classList.toggle('mode', !!text);
-      },
+      setHint: (text) => this.hud.setHint(text),
       debugVisible: () => this.debug.visible,
+      onModeChange: () => {
+        this.canvas.dataset.mode = this.tools.mode;
+        this.updateHud();
+      },
     });
     this.renderer = new Renderer(canvas, this.world);
     this.minimap = new Minimap($('minimap') as HTMLCanvasElement, this.world);
@@ -95,10 +110,13 @@ class Game {
         this.tools.click(n, button, x / dpr, y / dpr);
       },
       onKey: (code) => this.onKey(code),
+      onLeave: () => {
+        this.mouseX = this.mouseY = -1;
+      },
     });
     this.setupMinimapInput();
     $('minimap-title').textContent = t('hud.minimap');
-    $('help').textContent = t('hud.help');
+    this.canvas.dataset.mode = 'select';
     window.addEventListener('resize', () => this.resize());
     this.resize();
     centerOnNode(this.cam, this.world.map, this.world.players[0].hqNode);
@@ -165,6 +183,11 @@ class Game {
   }
 
   private onKey(code: string): void {
+    if (this.hud.helpVisible && (code === 'Escape' || code === 'F1')) {
+      this.hud.setHelp(false);
+      this.updateHud();
+      return;
+    }
     if (this.tools.key(code, this.hoverNode)) {
       this.updateHud();
       return;
@@ -185,6 +208,9 @@ class Game {
         break;
       case 'F3':
         this.debug.toggle();
+        break;
+      case 'F1':
+        this.hud.setHelp(!this.hud.helpVisible);
         break;
       case 'KeyM':
         this.minimapVisible = !this.minimapVisible;
@@ -225,14 +251,15 @@ class Game {
   }
 
   private updateHud(): void {
-    $('hud-status').textContent = this.clock.paused
-      ? t('hud.paused')
-      : t('hud.speed', { speed: this.clock.speed });
-    $('hud-seed').textContent = t('hud.seed', { seed: this.world.seed });
-    const modes: string[] = [];
-    if (this.tools.buildHelp) modes.push(t('hud.buildHelp'));
-    if (this.tools.congestion) modes.push(t('hud.congestion'));
-    $('hud-modes').textContent = modes.join(' · ');
+    this.hud.update({
+      mode: this.tools.mode,
+      buildHelp: this.tools.buildHelp,
+      congestion: this.tools.congestion,
+      minimap: this.minimapVisible,
+      debug: this.debug.visible,
+      paused: this.clock.paused,
+      speed: this.clock.speed,
+    });
   }
 
   private frame(ts: number): void {
@@ -240,8 +267,16 @@ class Game {
     this.lastFrame = ts;
     this.fps = this.fps * 0.95 + (dt > 0 ? 1000 / dt : 60) * 0.05;
 
-    // Tastatur-Scrollen
-    const [ax, ay] = this.input.scrollAxis();
+    // Tastatur- und Randscrollen
+    let [ax, ay] = this.input.scrollAxis();
+    if (this.mouseX >= 0 && !this.input.isDragging && document.hasFocus()) {
+      const dpr = window.devicePixelRatio || 1;
+      const m = VIEW.EDGE_SCROLL_MARGIN * dpr;
+      if (this.mouseX < m) ax = -1;
+      else if (this.mouseX > window.innerWidth * dpr - m) ax = 1;
+      if (this.mouseY < m) ay = -1;
+      else if (this.mouseY > window.innerHeight * dpr - m) ay = 1;
+    }
     if (ax || ay) {
       const d = (VIEW.KEY_SCROLL_SPEED * dt) / 1000;
       this.cam.x += ax * d;
@@ -262,8 +297,14 @@ class Game {
     // Rendering
     const r0 = performance.now();
     const hover = this.mouseX >= 0 ? this.pick(this.mouseX, this.mouseY) : -1;
-    if (hover !== this.hoverNode || this.tools.roadPath) this.tools.hover(hover);
+    this.tools.hover(hover);
     this.hoverNode = hover;
+    const dpr = window.devicePixelRatio || 1;
+    this.hud.setTip(
+      hover >= 0 ? this.tools.hoverInfo.tip : null,
+      this.mouseX / dpr,
+      this.mouseY / dpr,
+    );
     this.renderer.draw(this.cam, this.clock.alpha, {
       hoverNode: this.hoverNode,
       player: 0,
@@ -274,6 +315,7 @@ class Game {
       debug: this.debug.visible,
       selectedWare: this.tools.selectedWare,
       selectedNode: this.tools.selectedNode,
+      ghostFlag: this.tools.hoverInfo.ghostFlag,
     });
     this.info.refresh();
     if (this.minimapVisible) this.minimap.draw(this.cam);
