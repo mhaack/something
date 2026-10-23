@@ -478,6 +478,51 @@ export function makeBuilding(type: BuildingType, color: RGB): Sprite {
       banner(b, 38, base - 28, color);
       return finish(b, 27, base, 24);
     }
+    case 'smelter':
+    case 'mint':
+    case 'toolsmith':
+    case 'weaponsmith': {
+      const b = new PixelBuffer(60, 52);
+      const base = 45;
+      stoneBase(b, 10, base - 20, 34, 20, type.length * 7);
+      roof(b, 27, base - 20, 21, 14, type === 'mint' ? 'tile' : 'slate');
+      door(b, 23, base - 11, 7, 11);
+      window(b, 13, base - 11, true);
+      // Esse mit Glut und Rauchfahne
+      b.rect(38, base - 34, 5, 16, STONE[1]);
+      b.rect(38, base - 34, 5, 1, STONE[3]);
+      for (let k = 0; k < 4; k++) b.set(40 + (k & 1), base - 36 - k * 2, [150, 146, 140]);
+      b.rect(33, base - 9, 7, 6, [60, 30, 20]);
+      b.rect(34, base - 8, 5, 4, type === 'mint' ? [250, 210, 80] : [250, 130, 40]);
+      if (type === 'smelter') {
+        // Eisenbarren-Stapel
+        for (let k = 0; k < 3; k++) b.rect(46 + (k % 2), base - 2 - k * 2, 7, 2, [150, 160, 176]);
+      } else if (type === 'mint') {
+        // Münzschild
+        b.rect(48, base - 24, 1, 10, PLANK[0]);
+        b.ellipse(50, base - 14, 4, 4, (dx, dy) =>
+          dx + dy < 0 ? [250, 220, 100] : [220, 180, 60],
+        );
+      } else if (type === 'toolsmith') {
+        // Amboss und Werkzeugwand
+        b.rect(46, base - 5, 9, 2, [70, 70, 78]);
+        b.rect(48, base - 3, 5, 3, [56, 56, 62]);
+        for (let k = 0; k < 3; k++) {
+          b.rect(47 + k * 3, base - 18, 1, 6, PLANK[1]);
+          b.rect(46 + k * 3, base - 18, 3, 2, [180, 182, 190]);
+        }
+      } else {
+        // Schild und gekreuzte Schwerter
+        b.rect(46, base - 18, 8, 8, color);
+        b.rect(49, base - 18, 2, 8, [230, 210, 120]);
+        for (let k = 0; k < 9; k++) {
+          b.set(44 + k, base - 3 - k, [200, 206, 216]);
+          b.set(56 - k, base - 3 - k, [200, 206, 216]);
+        }
+      }
+      banner(b, 6, base - 30, color);
+      return finish(b, 27, base, 24);
+    }
     case 'coalmine':
     case 'ironmine':
     case 'goldmine':

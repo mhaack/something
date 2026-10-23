@@ -266,6 +266,10 @@ export const FIGURE_LOOKS: Record<string, FigureLook> = {
   donkeybreeder: { hat: [150, 120, 80], hatStyle: 'brim', tool: null },
   geologist: { hat: [110, 110, 120], hatStyle: 'hood', tool: 'hammer' },
   miner: { hat: [220, 190, 60], hatStyle: 'cap', tool: 'pick' },
+  smelter: { hat: [70, 60, 56], hatStyle: 'cap', apron: [110, 80, 56], tool: null },
+  minter: { hat: [200, 170, 70], hatStyle: 'cap', apron: [110, 80, 56], tool: null },
+  toolsmith: { hat: [80, 80, 90], hatStyle: 'cap', apron: [110, 80, 56], tool: 'hammer' },
+  weaponsmith: { hat: [150, 40, 40], hatStyle: 'cap', apron: [110, 80, 56], tool: 'hammer' },
 };
 
 const METAL: RGB = [196, 198, 208];
