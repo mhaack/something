@@ -13,6 +13,7 @@ export type IconName =
   | 'road'
   | 'demolish'
   | 'build'
+  | 'stats'
   | 'buildHelp'
   | 'congestion'
   | 'minimap'
@@ -69,6 +70,13 @@ function draw(name: IconName, b: PixelBuffer): void {
         b.set(15 - k, k, RED);
         b.set(14 - k, k, RED);
       }
+      break;
+    case 'stats':
+      b.rect(2, 14, 12, 1, LIGHT);
+      b.rect(3, 9, 2, 5, BLUE);
+      b.rect(6, 5, 2, 9, YELLOW);
+      b.rect(9, 7, 2, 7, GREEN);
+      b.rect(12, 3, 2, 11, RED);
       break;
     case 'build':
       b.rect(3, 8, 10, 7, [170, 126, 70]);

@@ -16,6 +16,7 @@ import { Hud } from './ui/hud';
 import { icon } from './ui/icons';
 import { InfoPanel, Popup, Toast } from './ui/panels';
 import { Tools } from './ui/tools';
+import { StatsWindow } from './ui/statsWindow';
 import { GameClock } from './ui/clock';
 import { DebugOverlay } from './ui/debugOverlay';
 import { t } from './ui/i18n';
@@ -54,6 +55,7 @@ class Game {
   popup = new Popup($('popup'));
   info = new InfoPanel($('info'), icon('close'), t('action.close'));
   hud: Hud;
+  stats: StatsWindow;
   toast = new Toast($('toast'));
   tools: Tools;
   private mouseX = -1;
@@ -75,6 +77,7 @@ class Game {
       toggleMinimap: () => this.onKey('KeyM'),
       toggleHelp: () => this.onKey('F1'),
       toggleDebug: () => this.onKey('F3'),
+      toggleStats: () => this.onKey('KeyT'),
       togglePause: () => this.onKey('Space'),
       slower: () => this.onKey('Minus'),
       faster: () => this.onKey('Equal'),
@@ -93,6 +96,12 @@ class Game {
         this.updateHud();
       },
     });
+    this.stats = new StatsWindow(
+      document.body,
+      () => this.world,
+      0,
+      (c) => this.pending.push(c),
+    );
     this.renderer = new Renderer(canvas, this.world);
     this.minimap = new Minimap($('minimap') as HTMLCanvasElement, this.world);
     this.input = new Input(canvas, {
@@ -185,6 +194,11 @@ class Game {
   }
 
   private onKey(code: string): void {
+    if (this.stats.visible && (code === 'Escape' || code === 'KeyT')) {
+      this.stats.toggle(false);
+      this.updateHud();
+      return;
+    }
     if (this.hud.helpVisible && (code === 'Escape' || code === 'F1')) {
       this.hud.setHelp(false);
       this.updateHud();
@@ -210,6 +224,9 @@ class Game {
         break;
       case 'F3':
         this.debug.toggle();
+        break;
+      case 'KeyT':
+        this.stats.toggle(true);
         break;
       case 'F1':
         this.hud.setHelp(!this.hud.helpVisible);
@@ -259,6 +276,7 @@ class Game {
       congestion: this.tools.congestion,
       minimap: this.minimapVisible,
       debug: this.debug.visible,
+      stats: this.stats?.visible ?? false,
       paused: this.clock.paused,
       speed: this.clock.speed,
     });
@@ -327,6 +345,7 @@ class Game {
       this.minimapBuilt = ts;
     }
     this.info.refresh();
+    this.stats.refresh();
     if (this.minimapVisible) this.minimap.draw(this.cam);
     this.frameMs = this.frameMs * 0.9 + (performance.now() - r0) * 0.1;
     this.debug.update(this.world, this.cam, {

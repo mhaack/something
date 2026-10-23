@@ -35,6 +35,8 @@ function statusText(b: Building, workerHere: boolean): string {
       return t('status.outputBlocked');
     case 'waitingInput':
       return t('status.waitingInput');
+    case 'noOrders':
+      return t('status.noOrders');
     default:
       return t('status.working');
   }

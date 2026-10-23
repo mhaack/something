@@ -11,6 +11,7 @@ export interface HudActions {
   toggleMinimap(): void;
   toggleHelp(): void;
   toggleDebug(): void;
+  toggleStats(): void;
   togglePause(): void;
   slower(): void;
   faster(): void;
@@ -22,6 +23,7 @@ export interface HudState {
   congestion: boolean;
   minimap: boolean;
   debug: boolean;
+  stats: boolean;
   paused: boolean;
   speed: number;
 }
@@ -93,6 +95,7 @@ export class Hud {
       ['minimap', 'tool.minimap', 'M', () => actions.toggleMinimap(), (s) => s.minimap],
     ]);
     group([
+      ['stats', 'tool.stats', 'T', () => actions.toggleStats(), (s) => s.stats],
       ['help', 'tool.help', 'F1', () => actions.toggleHelp(), () => !this.help.hidden],
       ['debug', 'tool.debug', 'F3', () => actions.toggleDebug(), (s) => s.debug],
     ]);
@@ -142,6 +145,7 @@ export class Hud {
         'help.k.road',
         'help.k.view',
         'help.k.overlays',
+        'help.k.stats',
         'help.k.time',
         'help.k.misc',
       ]),
