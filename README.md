@@ -1,8 +1,8 @@
 # Kleine Siedler
 
 Browser-Aufbau- und Wirtschaftsspiel nach dem Vorbild des Klassikers von 1993. TypeScript, Vite,
-Canvas 2D, ohne Spiel-Engine und ohne Runtime-Abhängigkeiten. Alle Grafiken werden prozedural im
-Code erzeugt, es gibt keine externen Assets.
+Canvas 2D, ohne Spiel-Engine und ohne Runtime-Abhängigkeiten. Alle Grafiken, Geräusche und die Musik
+werden prozedural im Code erzeugt, es gibt keine externen Assets.
 
 ## Start
 
@@ -14,8 +14,10 @@ npm run lint     # ESLint + Prettier
 npm run build    # Produktions-Build nach dist/
 ```
 
-Ein neues Spiel startet über den Dialog „Neues Spiel“ (`N`). Die Einstellungen stehen auch in der
-URL: `?seed=42&size=128&players=3&ai=hard&stock=low` (Größe 64/128/256, Spieler 1–4 inklusive dir,
+Das Spiel startet im Hauptmenü (freies Spiel, Missionen, Spiel laden, Einstellungen). Im Spiel
+öffnet `Esc` das Spielmenü mit Speichern und Laden, `N` den Dialog „Neues Spiel“. Spielstände
+liegen im Browser (5 Plätze und automatisches Speichern) oder werden als Datei exportiert.
+Mit Spielparametern in der URL geht es direkt ins Spiel: `?seed=42&size=128&players=3&ai=hard&stock=low` (Größe 64/128/256, Spieler 1–4 inklusive dir,
 Gegnerstärke easy/normal/hard, Startbedingungen low/normal/high) oder `?mission=4`.
 
 ## Steuerung
@@ -39,8 +41,10 @@ Tastenübersicht im Spiel.
 | Pause / Tempo 1x–8x | Leertaste / `+` `−` |
 | Angriff | Klick auf ein feindliches Militärgebäude, Anzahl der Soldaten wählen, „Angreifen“ |
 | Soldatenreserve im HQ | HQ-Fenster: Reserve − / + |
+| Spielmenü (Speichern, Laden, Einstellungen, Hauptmenü) | `Esc` |
 | Neues Spiel (freies Spiel oder Mission) | `N` oder Leistenknopf |
-| Statistik (Waren, Verlauf, Siedler, Werkzeug-Prioritäten) | `T` |
+| Ton an/aus | `K` oder Lautsprecher oben links |
+| Statistik (Waren, Verlauf, Siedler, Werkzeug-Prioritäten, Warenverteilung) | `T` |
 | Hilfe / Debug | `F1` / `F3` |
 | Neue Zufallskarte | `N` |
 

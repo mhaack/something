@@ -1,6 +1,26 @@
 # STATUS
 
-## Aktuelle Phase: 7 abgeschlossen
+## Aktuelle Phase: 8 abgeschlossen (alle geplanten Phasen fertig)
+
+### Erledigt (Phase 8)
+- Hauptmenü mit Hintergrundpartie zwischen Computerspielern; Spielmenü mit Esc (Weiterspielen,
+  Speichern, Laden, Neues Spiel, Einstellungen, Hauptmenü); Einstellungen für Geräusche, Musik,
+  Ton aus, automatisches Speichern und Randscrollen (A53).
+- Speichern und Laden: 5 Plätze im Browser, automatisches Speichern alle 5 Minuten Spielzeit,
+  Export und Import als Datei; das KI-Gedächtnis wird mitgespeichert (A52).
+- Ton: prozedurale Geräusche für Bau, Arbeit, Kampf, Eroberung, Funde, Meldungen und Aktionen,
+  dazu eine kleine Musik in d-dorisch; Taste `K` schaltet stumm (A51).
+- Warenverteilung für alle Spieler, die KI stellt sie nach Bedarf ein (A50).
+- Performance: KI ohne Laufzeitspitzen (Distanzkarten, Bergcache, begrenzte Straßenplanung);
+  Simulation mit Terrain-Cache, begrenzter Wegsuche der Arbeiter und ohne vergebliche Lager- und
+  Soldatensuchen (A54, A55). Späte Partie mit 4 KIs auf 256×256 (500 Siedler): 13 ms → 2 ms pro
+  Tick.
+- Balancing und Fehler: mehr Startwerkzeuge, abgerissene Gebäude brennen nieder, Minikarte mit
+  Straßen (A56).
+- Tests (112): Spielstände (Weiterspielen nach dem Laden ergibt denselben Verlauf, Format- und
+  Versionsprüfung), Verteilung, Ereignisse, Abriss.
+
+## Davor: Phase 7
 
 ### Erledigt (Phase 7)
 - Gegner-KI in drei Stufen (leicht, mittel, schwer), regelbasiert und deterministisch (A38, A39):
@@ -145,22 +165,18 @@
 
 ### Gemessen
 - Simulation: 760 Träger, 1200 Waren auf einem Straßengitter: ca. 0,5 ms pro Tick (Vitest, Node).
-- Browser (Chromium headless, 1280×720, 256×256-Karte, 8x-Tempo, ~440 Siedler): 60 FPS,
-  ca. 1,8 ms Renderzeit pro Frame.
+- Späte Partie (35 Minuten, 4 schwere KIs, 256×256, ca. 450–500 Siedler): 1,3 ms Simulation und
+  0,8 ms KI pro Tick (Node); im Browser bei 8x-Tempo 60 FPS, 3,9 ms Renderzeit pro Frame.
 
-### Offen / nächste Schritte (Phase 8)
-- Speichern/Laden, Hauptmenü, Sound, Performance, Balancing, Bugfixing.
+### Offen / mögliche nächste Schritte
+- Balancing der KI auf erzarmen Karten (etwa ein Drittel der KIs bleibt militärisch schwach).
+- Fischbestände wachsen nicht nach.
+- Spielstände älterer Versionen werden nicht umgewandelt.
 
 ### Bekannte Punkte
-- Vom Spieler abgerissene Gebäude verschwinden sofort; nur verlorene/zerstörte Gebäude brennen.
 - Ein Drittel der KIs findet in 40 Minuten kein passendes Erz in ihrem Land (z. B. ganz ohne Berge
-  oder nur Kohle) und bleibt militärisch schwach. Weiteres Balancing in Phase 8.
-- Die KI kann keine Waren gezielt verteilen (z. B. Kohle zuerst an die Schmelze); Verteilungs-
-  einstellungen fehlen noch für alle Spieler.
-- Fischbestände wachsen nicht nach.
-- Minikarte zeigt noch keine Straßen.
-- Kein Hauptmenü, Seed/Größe/Spieler per URL (Annahme A5).
+  oder nur Kohle) und bleibt militärisch schwach.
 - Siedler laufen auf Straßen durcheinander hindurch (kein Ausweichen), wie im Original.
 
 ### Annahmen
-Siehe PLAN.md, Abschnitt 5 (A1–A49).
+Siehe PLAN.md, Abschnitt 5 (A1–A56).

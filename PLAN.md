@@ -231,3 +231,25 @@ STATUS.md und Commit.
   Bergwerke hungern, Stichstraßen ohne Gebäude werden abgerissen, Querverbindungen bei großen
   Umwegen, Zwischenflaggen nur auf langen Straßen, Baustopp bei Trägermangel, Reserve auf 1
   solange Erz fehlt, Ausdehnung zu bekannten Erzfunden.
+- A50: Warenverteilung: Für knappe Waren (Nahrung der Bergwerke, Kohle, Eisen, Weizen, Wasser,
+  Münzen) hat jeder Spieler Gewichte 0–10 je Betriebsart (Statistik, Reiter „Verteilung“).
+  Konkurrieren Anforderungen, gehen die Lieferungen im Verhältnis der Gewichte (gewichteter
+  Rundlauf unter den gerade anfragenden Betriebsarten); Gewicht 0 bekommt nichts. Baustellen und
+  nicht verteilte Waren sind nicht betroffen.
+- A51: Spielereignisse (`world.events`) werden pro Tick gesammelt und nur für Anzeige und Ton
+  genutzt. Ton und Musik entstehen mit WebAudio zur Laufzeit; Geräusche werden nach Abstand zur
+  Bildmitte leiser und im Stereobild verteilt.
+- A52: Spielstände: JSON mit Welt, KI-Gedächtnis, Spieloptionen und Kamera, gespeichert in
+  IndexedDB (5 Plätze + automatisches Speichern alle 5 Minuten Spielzeit) oder als Datei. Beim
+  Laden werden Format und Weltversion geprüft; alte Stände sind nicht kompatibel (kein Umbau).
+- A53: Ohne Spielparameter in der URL startet das Hauptmenü; im Hintergrund spielen vier
+  Computergegner auf einer kleinen Karte. Mit Parametern (geteilter Link) geht es direkt ins Spiel.
+  Einstellungen (Lautstärke, Ton aus, automatisch speichern, Randscrollen) liegen in localStorage.
+- A54: Abgeleitete Caches außerhalb des Weltzustands: Terrainklassen pro Karte (begehbar,
+  bebaubar, Berg). Das Terrain ändert sich im Spiel nie; Kartengenerator und Tests, die es ändern,
+  rufen `invalidateTerrainCache` auf.
+- A55: Wege von Arbeitern zu Zielen im Arbeitsradius suchen mit kleinem Budget
+  (`WORKER_PATH_EXPANSIONS`); unerreichbare Ziele kosten so wenig Zeit.
+- A56: Startbestand an Werkzeugen leicht erhöht (Spitzhacke 6, Angel 3, Sense 3, Hackbeil 2,
+  Nudelholz 2, Schmelztiegel 2), sonst blieben Metzger, Bäcker und Bergleute lange ohne Arbeiter.
+  Abgerissene fertige Gebäude brennen nieder (Anzeige), Baustellen verschwinden sofort.
