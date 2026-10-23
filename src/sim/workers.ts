@@ -18,7 +18,7 @@ import { flagLoad, newSettler } from './store';
 import { standSoldier } from './military';
 import { chooseTool, hasToolOrders, recordConsumed, recordProduced } from './economy';
 import { isMatureField, isMatureTree, plantTree, removeObject, sowField } from './trees';
-import { isPassable } from './map';
+import { isMinableTerrain, isPassable } from './map';
 import { allocId, type World } from './world';
 
 function home(world: World, s: Settler): Building | undefined {
@@ -364,7 +364,7 @@ function nextSurvey(world: World, s: Settler): void {
   const flag = world.flags[s.targetFlag];
   if (!flag || s.count <= 0) return releaseWorker(world, s.id);
   const map = world.map;
-  const spots = nodesInRadius(map, flag.node, GEOLOGIST.RADIUS).filter(
+  let spots = nodesInRadius(map, flag.node, GEOLOGIST.RADIUS).filter(
     (n) =>
       isPassable(map, n) &&
       map.objects[n] === MapObject.None &&
@@ -373,6 +373,9 @@ function nextSurvey(world: World, s: Settler): void {
       !world.nodeBuilding[n] &&
       !world.signs.some((g) => g.node === n && g.until > world.tick),
   );
+  // Bodenschätze gibt es nur im Berg: liegen Bergknoten in Reichweite, wird nur dort gebohrt.
+  const rock = spots.filter((n) => isMinableTerrain(map, n));
+  if (rock.length > 0) spots = rock;
   for (let tries = 0; tries < 8 && spots.length > 0; tries++) {
     const k = nextInt(world.rng, 0, spots.length - 1);
     const target = spots[k];

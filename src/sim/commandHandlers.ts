@@ -1,5 +1,5 @@
 import { WARE_TYPES } from '../data/wares';
-import { TOOLS } from '../data/balance';
+import { MILITARY, TOOLS } from '../data/balance';
 import { launchAttack } from './military';
 import type { Command } from './commands';
 import { canPlaceFlag, placeFlag, removeFlag } from './flags';
@@ -53,6 +53,12 @@ export function applyCommand(world: World, cmd: Command): boolean {
     }
     case 'attack':
       return launchAttack(world, cmd.player, cmd.target, Math.max(0, Math.floor(cmd.soldiers))) > 0;
+    case 'setReserve': {
+      const p = world.players[cmd.player];
+      if (!p) return false;
+      p.reserve = Math.max(0, Math.min(MILITARY.MAX_RESERVE, Math.round(cmd.value)));
+      return true;
+    }
     case 'sendWare': {
       const p = world.players[cmd.player];
       const hq = p ? world.buildings[p.hq] : undefined;

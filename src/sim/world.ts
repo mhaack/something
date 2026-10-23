@@ -1,5 +1,6 @@
 import {
   BUILD,
+  MILITARY,
   START,
   STOCK_FACTOR,
   TRANSPORT,
@@ -30,7 +31,7 @@ import { processRouteQueue, scheduleReroutes } from './routing';
 import { updateSettler } from './carriers';
 import { createHQ, requestWorkers, storeTick } from './store';
 
-export const WORLD_VERSION = 7;
+export const WORLD_VERSION = 8;
 
 export interface Player {
   id: number;
@@ -41,6 +42,8 @@ export interface Player {
   ai: AiLevel | null;
   /** Kein Lager und kein besetztes Militärgebäude mehr. */
   defeated: boolean;
+  /** Soldaten, die im Hauptquartier bleiben (werden nicht an Militärgebäude abgegeben). */
+  reserve: number;
   /** Knoten des Hauptquartiers. */
   hqNode: number;
   /** Gebäude-ID des Hauptquartiers (0 = verloren). */
@@ -150,6 +153,7 @@ export function createWorldFromMap(
       human: id === 0,
       ai: id === 0 ? null : (ai[id - 1] ?? 'normal'),
       defeated: false,
+      reserve: MILITARY.DEFAULT_RESERVE,
       hqNode,
       hq: 0,
       toolPriority: defaultToolPriority(),

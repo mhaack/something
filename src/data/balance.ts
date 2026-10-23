@@ -68,8 +68,16 @@ export const START = {
   RESOURCE_RADIUS: 12,
   MIN_TREES: 30,
   MIN_ROCKS: 6,
-  /** Maximal gesuchte Berg-Distanz (nur Bewertung, kein Ausgleich). */
+  /** Berge in diesem Radius zählen für die Startbewertung und den Erzausgleich. */
   MOUNTAIN_SEARCH_RADIUS: 20,
+  /** Startplätze mit mindestens so vielen Bergknoten werden bevorzugt (wenn genug vorhanden). */
+  MIN_MOUNTAIN_NODES: 12,
+  /** Erzausgleich: in den nächstgelegenen Bergen garantierte Kohle- und Eisenknoten. */
+  MIN_COAL_NODES: 8,
+  MIN_IRON_NODES: 6,
+  /** Der Erzausgleich betrachtet nur so viele der nächstgelegenen Bergknoten. */
+  ORE_NEAREST_NODES: 40,
+  GUARANTEED_ORE_AMOUNT: 12,
 } as const;
 
 export const TERRAIN_RULES = {
@@ -151,9 +159,9 @@ export const STORE = {
   /** Ticks zwischen zwei Waren, die ein Lager auf seine Flagge legt. */
   OUTPUT_TICKS: 10,
   /** Ein neuer Träger entsteht im Lager alle n Ticks. */
-  CARRIER_SPAWN_TICKS: 600,
+  CARRIER_SPAWN_TICKS: 400,
   /** Obergrenze für automatisch entstehende Träger pro Lager. */
-  CARRIER_SPAWN_MAX: 60,
+  CARRIER_SPAWN_MAX: 150,
 } as const;
 
 /** Startbestand des Hauptquartiers. */
@@ -356,6 +364,9 @@ export const MILITARY = {
   PROMOTION_TICKS: 400,
   /** Angreifer kommen aus eigenen Militärgebäuden in diesem Radius um das Ziel. */
   ATTACK_RADIUS: 16,
+  /** Soldatenreserve im Hauptquartier (vom Spieler einstellbar bis MAX_RESERVE). */
+  DEFAULT_RESERVE: 2,
+  MAX_RESERVE: 30,
   /** Jedes Militärgebäude behält beim Angriff mindestens so viele Soldaten. */
   KEEP_SOLDIERS: 1,
   /** Brenndauer eines zerstörten Gebäudes (nur Anzeige). */
@@ -396,8 +407,30 @@ export const AI = {
   MANAGE_TOOLS: { easy: false, normal: true, hard: true } as Record<AiLevel, boolean>,
   /** Bevorzugt Wachtürme und Festungen an Grenzen zu Gegnern. */
   STRONG_FRONT: { easy: false, normal: true, hard: true } as Record<AiLevel, boolean>,
-  /** Soldaten, die nicht für neue Militärgebäude verplant werden (Verteidigung des Lagers). */
-  HQ_RESERVE: { easy: 0, normal: 1, hard: 2 } as Record<AiLevel, number>,
+  /** Soldatenreserve im Hauptquartier, die die KI einstellt. */
+  HQ_RESERVE: { easy: 1, normal: 2, hard: 3 } as Record<AiLevel, number>,
+  /** Reserve, solange Kohle oder Eisen fehlen. */
+  HQ_RESERVE_MIN: 1,
+  /** Querverbindungen: geprüfte Startflaggen je Denkschritt, Reichweite in Knoten, ab welchem
+   * Umwegfaktor gebaut wird und wie viel länger als die Luftlinie die Straße sein darf. */
+  SHORTCUT_TRIES: 3,
+  /** Zwischenflaggen erst ab dieser Straßenlänge (Knoten); Baustopp, wenn so viele Straßen
+   * auf Träger warten. */
+  AUTOFLAG_MIN_LEN: 6,
+  /** Gedächtnis: gemerkte Bohrstellen bzw. Funde; ab so vielen Bohrungen im Geologenradius gilt
+   * eine Gegend als untersucht. */
+  MEMORY_MAX: 300,
+  SURVEY_COVERED: 14,
+  /** Gleichzeitig suchende Geologen; Mindestwert einer Bohrgegend (Bergknoten minus Abzug je
+   * bekannter Bohrung). */
+  GEOLOGISTS: { easy: 1, normal: 2, hard: 3 } as Record<AiLevel, number>,
+  SURVEY_MIN_VALUE: 6,
+  SURVEY_PENALTY: 3,
+  MAX_WAITING_ROADS: 2,
+  SHORTCUT_MIN_FLAGS: 4,
+  SHORTCUT_RANGE: 6,
+  SHORTCUT_DETOUR: 3,
+  SHORTCUT_SLACK: 2,
   /** Ein Militärgebäude gilt als Hinterland, wenn auch dieser Rand um sein Gebiet gedeckt ist. */
   INTERIOR_MARGIN: 2,
   /** Bewertete Bauplätze je Entscheidung (Straßenplanung ist teuer). */
@@ -411,10 +444,14 @@ export const AI = {
   /** Fehlen Berge: Wert eines Bergknotens im neuen Gebiet und Abzug je Schritt Abstand zum Berg. */
   MOUNTAIN_BONUS: 3,
   MOUNTAIN_PULL: 1.5,
+  /** Wert eines bekannten Kohle- oder Eisenfunds im neu gewonnenen Gebiet. */
+  DEPOSIT_BONUS: 6,
   /** Holzfäller brauchen mindestens so viele Bäume im Radius, Steinbrüche so viele Felsen. */
   MIN_TREES: 6,
   MIN_ROCKS: 2,
   MIN_FISH: 3,
+  /** Freie Pflanzplätze um einen Förster. */
+  MIN_FOREST_SPACE: 10,
   /** Freie Felder um einen Bauernhof. */
   MIN_FARM_SPACE: 8,
   /** Werkzeugpriorität für dringend fehlende bzw. übrige Werkzeuge. */

@@ -117,6 +117,7 @@ export function generateMap(opts: MapGenOptions): GeneratedMap {
   // 6. Startpositionen
   const starts = chooseStarts(map, opts.players, rng);
   for (const s of starts) prepareStart(map, s, rng);
+  for (const s of starts) guaranteeOres(map, s);
 
   return { map, starts };
 }
@@ -222,6 +223,7 @@ function placeFish(map: GameMap, rng: RngState): void {
 interface Candidate {
   node: number;
   score: number;
+  mountain: number;
 }
 
 function startCandidates(map: GameMap, minShare: number): Candidate[] {
@@ -252,7 +254,7 @@ function startCandidates(map: GameMap, minShare: number): Candidate[] {
         Math.min(1, trees / START.MIN_TREES) * 0.3 +
         Math.min(1, rocks / START.MIN_ROCKS) * 0.3 +
         Math.min(1, mountain / 20) * 0.6;
-      out.push({ node: i, score });
+      out.push({ node: i, score, mountain });
     }
   }
   return out;
@@ -265,6 +267,9 @@ function chooseStarts(map: GameMap, players: number, rng: RngState): number[] {
     candidates = startCandidates(map, share);
     if (candidates.length >= players) break;
   }
+  // Ohne Berge in Reichweite gibt es kein Erz: solche Plätze nur, wenn es nicht anders geht.
+  const withMountains = candidates.filter((c) => c.mountain >= START.MIN_MOUNTAIN_NODES);
+  if (withMountains.length >= players) candidates = withMountains;
   const chosen: number[] = [];
   if (candidates.length > 0) {
     let best = candidates[0];
@@ -312,6 +317,39 @@ function forceMeadow(map: GameMap, center: number, r: number): void {
     map.objects[j] = MapObject.None;
     map.terrain[2 * j + TRI_UP] = Terrain.Meadow1;
     map.terrain[2 * j + TRI_DOWN] = Terrain.Meadow1;
+  }
+}
+
+/**
+ * Erzausgleich: Unter den Bergknoten am nächsten zum Start liegen mindestens einige Knoten Kohle und Eisen
+ * (ohne Kohle und Eisen gibt es weder Werkzeuge noch Waffen). Umgewidmet werden die nächsten
+ * Bergknoten, die weder Kohle noch Eisen tragen.
+ */
+function guaranteeOres(map: GameMap, start: number): void {
+  const sx = nodeX(map, start);
+  const sy = nodeY(map, start);
+  const dist = (n: number): number => gridDistance(sx, sy, nodeX(map, n), nodeY(map, n));
+  const mountain = nodesInRadius(map, start, START.MOUNTAIN_SEARCH_RADIUS)
+    .filter((n) => isMinableTerrain(map, n))
+    .sort((a, b) => dist(a) - dist(b) || a - b)
+    .slice(0, START.ORE_NEAREST_NODES);
+  const min = new Map<number, number>([
+    [Resource.Coal, START.MIN_COAL_NODES],
+    [Resource.Iron, START.MIN_IRON_NODES],
+  ]);
+  const count = (res: number): number => mountain.filter((n) => map.resources[n] === res).length;
+  for (const [res, need] of min) {
+    let have = count(res);
+    for (const n of mountain) {
+      if (have >= need) break;
+      const cur = map.resources[n];
+      if (cur === res) continue;
+      // Das andere Erz nur nehmen, wenn davon mehr als nötig da ist.
+      if (min.has(cur) && count(cur) <= min.get(cur)!) continue;
+      map.resources[n] = res;
+      map.resourceAmounts[n] = Math.max(map.resourceAmounts[n], START.GUARANTEED_ORE_AMOUNT);
+      have++;
+    }
   }
 }
 

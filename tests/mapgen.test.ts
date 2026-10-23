@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { MapObject, Terrain } from '../src/data/terrain';
+import { MapObject, Resource, Terrain } from '../src/data/terrain';
 import { START } from '../src/data/balance';
-import { gridDistance, nodeX, nodeY, nodesInRadius } from '../src/sim/geometry';
-import { isBuildableTerrain } from '../src/sim/map';
+import { gridDistance, nodeDistance, nodeX, nodeY, nodesInRadius } from '../src/sim/geometry';
+import { isBuildableTerrain, isMinableTerrain } from '../src/sim/map';
 import { generateMap } from '../src/sim/mapgen';
 import { hashSeed } from '../src/sim/rng';
 
@@ -46,6 +46,16 @@ describe('mapgen', () => {
           if (map.objects[j] === MapObject.Rock) rocks++;
         }
         expect(trees).toBeGreaterThanOrEqual(START.MIN_TREES);
+        // Erzausgleich: Kohle und Eisen unter den nächsten Bergknoten (sofern es dort Berge gibt).
+        const near = nodesInRadius(map, s, START.MOUNTAIN_SEARCH_RADIUS)
+          .filter((j) => isMinableTerrain(map, j))
+          .sort((a, b) => nodeDistance(map, a, s) - nodeDistance(map, b, s) || a - b)
+          .slice(0, START.ORE_NEAREST_NODES);
+        if (near.length >= START.MIN_COAL_NODES + START.MIN_IRON_NODES) {
+          const count = (r: number): number => near.filter((j) => map.resources[j] === r).length;
+          expect(count(Resource.Coal)).toBeGreaterThanOrEqual(START.MIN_COAL_NODES);
+          expect(count(Resource.Iron)).toBeGreaterThanOrEqual(START.MIN_IRON_NODES);
+        }
         expect(rocks).toBeGreaterThanOrEqual(START.MIN_ROCKS);
         for (const j of nodesInRadius(map, s, START.CLEAR_RADIUS)) {
           expect(map.objects[j]).toBe(MapObject.None);

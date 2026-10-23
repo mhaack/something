@@ -86,6 +86,7 @@ describe('Territorium', () => {
   it('Soldaten entstehen aus Träger, Schwert und Schild', () => {
     const w = twoPlayers();
     const h = hq(w, 0);
+    w.players[0].reserve = 0;
     h.soldiers = [];
     h.stock.sword = 1;
     h.stock.shield = 1;
@@ -97,6 +98,37 @@ describe('Territorium', () => {
     expect(countWares(w, 0).shield).toBe(0);
     run(w, 600);
     expect(w.buildings[id].soldiers.length).toBe(1);
+  });
+
+  it('das Hauptquartier behält seine Reserve und füllt sie mit neuen Soldaten auf', () => {
+    const w = twoPlayers();
+    const h = hq(w, 0);
+    h.soldiers = [0, 0, 0];
+    w.players[0].reserve = 2;
+    const id = build(w, 0, N(w, 19, 16), 'guardhut');
+    // Ohne Waffen: nur ein Soldat über der Reserve.
+    for (const t of ['sword', 'shield'] as const) {
+      w.ledger[0].wares[t] -= h.stock[t];
+      h.stock[t] = 0;
+    }
+    runUntil(w, () => w.buildings[id].soldiers.length === 1, 8000);
+    run(w, 600);
+    expect(w.buildings[id].soldiers.length).toBe(1);
+    expect(h.soldiers.length).toBe(2);
+    // Mit Waffen werden neue Soldaten ausgerüstet und die Hütte voll besetzt.
+    h.stock.sword = h.stock.shield = 3;
+    w.ledger[0].wares.sword += 3;
+    w.ledger[0].wares.shield += 3;
+    runUntil(w, () => w.buildings[id].soldiers.length === MILITARY.CAPACITY.guardhut, 8000);
+    expect(h.soldiers.length).toBe(2);
+    // Beim Angriff bleibt die Reserve ebenfalls zu Hause.
+    const target = { ...hq(w, 1), soldiers: [0] };
+    expect(availableAttackers(w, 0, target)).toBeLessThanOrEqual(
+      MILITARY.CAPACITY.guardhut - MILITARY.KEEP_SOLDIERS,
+    );
+    // Reserve per Befehl einstellbar, begrenzt.
+    cmd(w, { type: 'setReserve', player: 0, value: 999 });
+    expect(w.players[0].reserve).toBe(MILITARY.MAX_RESERVE);
   });
 
   it('Münzen befördern Soldaten', () => {

@@ -16,6 +16,8 @@ export type Command =
   | { type: 'sendGeologist'; player: number; flag: number }
   | { type: 'setToolPriority'; player: number; tool: ToolWare; value: number }
   | { type: 'attack'; player: number; target: number; soldiers: number }
+  /** Soldatenreserve im Hauptquartier. */
+  | { type: 'setReserve'; player: number; value: number }
   /** Testfunktion: Das HQ schickt eine Ware zu einer Flagge, von dort geht sie zurück ins Lager. */
   | { type: 'sendWare'; player: number; flag: number; ware?: WareType };
 

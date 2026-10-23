@@ -41,9 +41,17 @@ function storeQueued(store: Building, type: string): number {
   return n;
 }
 
-/** Kann dieses Lager einen Soldaten stellen (vorhanden oder Träger + Schwert + Schild)? */
-export function canSupplySoldier(store: Building): boolean {
-  if (store.soldiers.length > 0) return true;
+/** Soldaten, die das Hauptquartier als Reserve behält (andere Lager: keine). */
+export function reserveOf(world: World, store: Building): number {
+  return store.type === 'hq' ? world.players[store.owner].reserve : 0;
+}
+
+/** Soldaten eines Lagers, die es abgeben darf. */
+export function spareSoldiers(world: World, store: Building): number {
+  return Math.max(0, store.soldiers.length - reserveOf(world, store));
+}
+
+function canEquip(store: Building): boolean {
   return (
     store.people.carrier > 0 &&
     store.stock.sword - storeQueued(store, 'sword') > 0 &&
@@ -51,20 +59,34 @@ export function canSupplySoldier(store: Building): boolean {
   );
 }
 
-/** Entnimmt einen Soldaten (niedrigster Rang zuerst) oder bildet einen neuen aus. */
-function takeSoldier(world: World, store: Building): number {
-  if (store.soldiers.length > 0) {
-    let k = 0;
-    for (let i = 1; i < store.soldiers.length; i++)
-      if (store.soldiers[i] < store.soldiers[k]) k = i;
-    return store.soldiers.splice(k, 1)[0];
-  }
+/**
+ * Kann dieses Lager einen Soldaten stellen (über der Reserve vorhanden oder Träger + Schwert +
+ * Schild, sobald die Reserve voll ist)?
+ */
+export function canSupplySoldier(world: World, store: Building): boolean {
+  if (spareSoldiers(world, store) > 0) return true;
+  return store.soldiers.length >= reserveOf(world, store) && canEquip(store);
+}
+
+/** Bildet einen neuen Soldaten (Rang 0) aus Träger, Schwert und Schild. */
+function equipSoldier(world: World, store: Building): number {
   store.people.carrier--;
   store.stock.sword--;
   store.stock.shield--;
   recordConsumed(world, store.owner, 'sword');
   recordConsumed(world, store.owner, 'shield');
   return 0;
+}
+
+/** Entnimmt einen Soldaten (niedrigster Rang zuerst) oder bildet einen neuen aus. */
+function takeSoldier(world: World, store: Building): number {
+  if (spareSoldiers(world, store) > 0) {
+    let k = 0;
+    for (let i = 1; i < store.soldiers.length; i++)
+      if (store.soldiers[i] < store.soldiers[k]) k = i;
+    return store.soldiers.splice(k, 1)[0];
+  }
+  return equipSoldier(world, store);
 }
 
 function soldiersOnTheWay(world: World, b: Building): number {
@@ -78,13 +100,19 @@ function soldiersOnTheWay(world: World, b: Building): number {
 
 /** Schickt Soldaten zu Militärgebäuden, die noch Platz haben (einer pro Gebäude und Runde). */
 export function dispatchSoldiers(world: World): void {
+  // Zuerst füllt jedes Hauptquartier seine Reserve mit neu ausgerüsteten Soldaten auf.
+  for (const p of world.players) {
+    const hq = world.buildings[p.hq];
+    if (hq && hq.soldiers.length < p.reserve && canEquip(hq))
+      hq.soldiers.push(equipSoldier(world, hq));
+  }
   for (const id of Object.keys(world.buildings)) {
     const b = world.buildings[Number(id)];
     if (!b || b.site || !isMilitaryBuilding(b)) continue;
     if (b.soldiers.length + soldiersOnTheWay(world, b) >= capacity(b)) continue;
     const res = searchFlags(world, b.flag, b.owner, false, (f) => {
       const s = world.buildings[world.flags[f].building];
-      return !!s && s.owner === b.owner && isStore(s) && canSupplySoldier(s);
+      return !!s && s.owner === b.owner && isStore(s) && canSupplySoldier(world, s);
     });
     if (res.found < 0) continue;
     const store = world.buildings[world.flags[res.found].building];
@@ -156,7 +184,8 @@ export function attackSources(
     if (b.owner !== player || b.site || !isMilitaryType(b.type)) continue;
     const dist = gridDistance(tx, ty, nodeX(map, b.node), nodeY(map, b.node));
     if (dist > MILITARY.ATTACK_RADIUS) continue;
-    const available = b.soldiers.length - MILITARY.KEEP_SOLDIERS;
+    const keep = Math.max(MILITARY.KEEP_SOLDIERS, reserveOf(world, b));
+    const available = b.soldiers.length - keep;
     if (available > 0) out.push({ building: b, available, dist });
   }
   out.sort((a, b) => a.dist - b.dist || a.building.id - b.building.id);

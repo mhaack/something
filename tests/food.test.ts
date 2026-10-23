@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { isMinableTerrain } from '../src/sim/map';
 import { FIELDS, GEOLOGIST, START_STOCK } from '../src/data/balance';
 import { BUILDINGS } from '../src/data/buildings';
 import { MapObject, Resource, Terrain } from '../src/data/terrain';
@@ -176,6 +177,8 @@ describe('Geologe', () => {
       }
     }
     expect(w.signs.some((s) => s.resource === Resource.Granite)).toBe(true);
+    // Liegen Bergknoten in Reichweite, bohrt der Geologe nur dort.
+    for (const sign of w.signs) expect(isMinableTerrain(w.map, sign.node)).toBe(true);
     runUntil(w, () => hq(w).people.geologist === 1, 6000);
     expect(hq(w).people.geologist + countWares(w, 0).hammer).toBe(geologists);
     // Schilder verschwinden nach ihrer Lebensdauer.
