@@ -1,4 +1,7 @@
+import type { BuildingType } from '../data/buildings';
 import type { Job, JobCounts, WareCounts, WareType } from '../data/wares';
+
+export type BuildingStatus = 'ok' | 'noResources' | 'outputBlocked' | 'waitingInput';
 
 /** Marker im Richtungsslot einer Flagge: hier hängt das Gebäude (NW-Richtung). */
 export const SLOT_BUILDING = -1;
@@ -33,7 +36,18 @@ export interface Road {
   costBA: number;
 }
 
-export type BuildingType = 'hq';
+export type { BuildingType };
+
+/** Bauzustand einer Baustelle. */
+export interface Site {
+  stage: 'level' | 'build';
+  /** Knoten, die der Planierer auf `levelTarget` bringt. */
+  levelNodes: number[];
+  levelTarget: number;
+  /** Bereits verbaute Bretter und Steine. */
+  usedPlanks: number;
+  usedStone: number;
+}
 
 export interface Building {
   id: number;
@@ -41,9 +55,18 @@ export interface Building {
   owner: number;
   node: number;
   flag: number;
-  /** Lagerbestand (nur Lager). */
+  /** Lager: Bestand. Andere Gebäude: Eingangspuffer bzw. angeliefertes Baumaterial. */
   stock: WareCounts;
+  /** Personen (nur Lager). */
   people: JobCounts;
+  /** Baustelle (null = fertig). */
+  site: Site | null;
+  /** Zugewiesener Arbeiter: auf Baustellen Planierer/Bauarbeiter, sonst der Gebäudearbeiter. */
+  worker: number;
+  /** Letzter Arbeitsstatus für die Anzeige. */
+  status: BuildingStatus;
+  /** Produzierte Waren (Statistik). */
+  produced: number;
   /** Ausgabewarteschlange: Waren, die das Lager auf seine Flagge legen soll. */
   outQueue: OutOrder[];
   outTimer: number;
@@ -94,7 +117,18 @@ export type SettlerState =
   | 'leaveBuilding'
   | 'dropAndReturn'
   | 'returning'
-  | 'enterStore';
+  | 'enterStore'
+  // Arbeiter
+  | 'toBuilding'
+  | 'inside'
+  | 'toResource'
+  | 'harvest'
+  | 'toFlagOut'
+  | 'outputWait'
+  | 'enterHome'
+  | 'producing'
+  | 'leveling'
+  | 'building';
 
 export interface Settler {
   id: number;
@@ -121,8 +155,12 @@ export interface Settler {
   targetFlag: number;
   /** Zielgebäude (Heimweg, Abliefern). */
   targetBuilding: number;
-  /** Wartezeit für Aufnehmen/Ablegen. */
+  /** Wartezeit für Aufnehmen/Ablegen bzw. Arbeit. */
   wait: number;
+  /** Arbeitsstätte (0 = keine). */
+  home: number;
+  /** Zielknoten außerhalb (Baum, Fels, Pflanzplatz), -1 = keiner. */
+  targetNode: number;
 }
 
 export interface PlayerLedger {

@@ -1,4 +1,6 @@
-import { START, TRANSPORT } from '../data/balance';
+import { BUILD, START, TRANSPORT } from '../data/balance';
+import { requestWares } from './buildings';
+import { growTrees } from './trees';
 import type { Command } from './commands';
 import { applyCommand } from './commandHandlers';
 import type { Building, Flag, PlayerLedger, Road, Settler, Ware } from './entities';
@@ -9,7 +11,7 @@ import { processRouteQueue, scheduleReroutes } from './routing';
 import { updateSettler } from './carriers';
 import { createHQ, requestWorkers, storeTick } from './store';
 
-export const WORLD_VERSION = 2;
+export const WORLD_VERSION = 3;
 
 export interface Player {
   id: number;
@@ -45,6 +47,10 @@ export interface World {
   /** Waren, deren Route neu berechnet werden muss (gedeckelt pro Tick abgearbeitet). */
   routeQueue: number[];
   ledger: PlayerLedger[];
+  /** Gepflanzte Bäume im Wachstum. */
+  growingTrees: { node: number; timer: number }[];
+  /** Zähler für Änderungen an Höhen und Kartenobjekten (für Render-Caches). */
+  mapRevision: number;
 }
 
 export interface NewWorldOptions {
@@ -82,6 +88,8 @@ export function createWorldFromMap(seed: string, map: GameMap, starts: number[])
     wares: {},
     routeQueue: [],
     ledger: [],
+    growingTrees: [],
+    mapRevision: 0,
   };
   for (const p of world.players) createHQ(world, p);
   return world;
@@ -103,6 +111,8 @@ export function step(world: World, commands: readonly Command[] = []): void {
     const s = world.settlers[Number(id)];
     if (s) updateSettler(world, s);
   }
+  growTrees(world);
+  if (world.tick % BUILD.REQUEST_INTERVAL_TICKS === 0) requestWares(world);
   scheduleReroutes(world);
   processRouteQueue(world);
   if (world.tick % TRANSPORT.WORKER_REQUEST_INTERVAL_TICKS === 0) requestWorkers(world);

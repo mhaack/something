@@ -69,10 +69,12 @@ export const START = {
 } as const;
 
 export const TERRAIN_RULES = {
-  /** Maximaler Höhenunterschied zu den Nachbarn, damit ein Knoten als eben gilt (Bauplatz). */
+  /** Maximaler Höhenunterschied zu den Nachbarn, damit ein Knoten als eben gilt (Startplatz). */
   BUILD_MAX_SLOPE: 3,
-  /** Großer Bauplatz verlangt zusätzlich ebene zweite Nachbarschaft bis zu diesem Wert. */
-  BUILD_LARGE_MAX_SLOPE: 4,
+  /** Maximale Steigung rund um einen Bauplatz je Größe (der Planierer ebnet den Rest). */
+  BUILD_SLOPE_SMALL: 6,
+  BUILD_SLOPE_MEDIUM: 5,
+  BUILD_SLOPE_LARGE: 4,
   /** Höhendifferenz pro Straßenschritt, ab der eine Straße als steil gilt (langsamer). */
   ROAD_STEEP_SLOPE: 4,
   /** Höhendifferenz pro Straßenschritt, ab der keine Straße gebaut werden darf. */
@@ -182,4 +184,32 @@ export const START_STOCK = {
     carrier: 30,
     donkey: 4,
   },
+} as const;
+
+export const BUILD = {
+  /** Ticks, die der Planierer für eine Höheneinheit an einem Knoten braucht. */
+  LEVEL_STEP_TICKS: 24,
+  /** Ticks, die der Bauarbeiter pro verbautem Material arbeitet. */
+  BUILD_TICKS_PER_UNIT: 50,
+  /** Intervall, in dem Gebäude Waren und Arbeiter anfordern. */
+  REQUEST_INTERVAL_TICKS: 20,
+  /** Wartezeit, bevor ein Arbeiter ohne Ressourcen erneut sucht. */
+  NO_RESOURCE_RETRY_TICKS: 200,
+} as const;
+
+/** Werte pro Gebäudetyp. Kosten in Brettern/Steinen, Zeiten in Ticks, Radien in Knoten. */
+export const BUILDING_VALUES = {
+  hq: { planks: 0, stone: 0, radius: 0, workTicks: 0, restTicks: 0, inputs: {} },
+  storehouse: { planks: 4, stone: 3, radius: 0, workTicks: 0, restTicks: 0, inputs: {} },
+  woodcutter: { planks: 2, stone: 0, radius: 6, workTicks: 100, restTicks: 120, inputs: {} },
+  forester: { planks: 2, stone: 0, radius: 5, workTicks: 60, restTicks: 220, inputs: {} },
+  quarry: { planks: 2, stone: 0, radius: 6, workTicks: 120, restTicks: 120, inputs: {} },
+  sawmill: { planks: 3, stone: 2, radius: 0, workTicks: 140, restTicks: 20, inputs: { wood: 6 } },
+} as const;
+
+export const TREES = {
+  /** Ticks pro Wachstumsstufe eines gepflanzten Baums (Stufen 0..MATURE). */
+  GROWTH_STAGE_TICKS: 1100,
+  /** Ausgewachsene Stufe (nur ausgewachsene Bäume werden gefällt). */
+  MATURE_STAGE: 3,
 } as const;

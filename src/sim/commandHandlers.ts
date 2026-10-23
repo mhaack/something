@@ -2,6 +2,7 @@ import { WARE_TYPES } from '../data/wares';
 import type { Command } from './commands';
 import { canPlaceFlag, placeFlag, removeFlag } from './flags';
 import { buildRoad, removeRoad, validateRoad } from './roads';
+import { canBuild, placeBuilding, removeBuilding } from './buildings';
 import type { World } from './world';
 
 /**
@@ -30,6 +31,15 @@ export function applyCommand(world: World, cmd: Command): boolean {
       if (!r || r.owner !== cmd.player) return false;
       removeRoad(world, cmd.road);
       return true;
+    }
+    case 'placeBuilding':
+      if (canBuild(world, cmd.player, cmd.node, cmd.building) !== 'ok') return false;
+      placeBuilding(world, cmd.player, cmd.node, cmd.building);
+      return true;
+    case 'removeBuilding': {
+      const b = world.buildings[cmd.building];
+      if (!b || b.owner !== cmd.player) return false;
+      return removeBuilding(world, cmd.building);
     }
     case 'sendWare': {
       const p = world.players[cmd.player];

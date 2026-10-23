@@ -284,13 +284,14 @@ export function findNearestStoreAnywhere(
   world: World,
   owner: number,
   node: number,
+  exclude = 0,
 ): Building | undefined {
   const map = world.map;
   let best: Building | undefined;
   let bestD = Infinity;
   for (const id in world.buildings) {
     const b = world.buildings[id];
-    if (b.owner !== owner || !isStore(b)) continue;
+    if (b.owner !== owner || !isStore(b) || b.id === exclude) continue;
     const d = gridDistance(
       nodeX(map, node),
       nodeY(map, node),

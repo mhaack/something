@@ -7,10 +7,12 @@ import { SLOT_BUILDING } from './entities';
 import { placeFlag } from './flags';
 import { enqueueRoute, nodesAlongRoute, routeSteps, searchFlags } from './routing';
 import { stepTicks } from './roads';
+import { BUILDINGS } from '../data/buildings';
+import { dispatchBuildingWorkers } from './buildings';
 import { allocId, type Player, type World } from './world';
 
 export function isStore(b: Building): boolean {
-  return b.type === 'hq';
+  return BUILDINGS[b.type].kind === 'store' && !b.site;
 }
 
 /** Knoten, die ein großes Gebäude belegt: der Bauplatz selbst sowie W, NW und NO. */
@@ -39,6 +41,10 @@ export function createHQ(world: World, player: Player): Building {
     flag: flag.id,
     stock,
     people,
+    site: null,
+    worker: 0,
+    status: 'ok',
+    produced: 0,
     outQueue: [],
     outTimer: 0,
     spawnTimer: 0,
@@ -112,7 +118,11 @@ export function flagAccepts(world: World, flagId: number, w: Ware): boolean {
 
 export function storeTick(world: World, b: Building): void {
   if (!isStore(b)) return;
-  if (b.spawned < STORE.CARRIER_SPAWN_MAX && ++b.spawnTimer >= STORE.CARRIER_SPAWN_TICKS) {
+  if (
+    b.type === 'hq' &&
+    b.spawned < STORE.CARRIER_SPAWN_MAX &&
+    ++b.spawnTimer >= STORE.CARRIER_SPAWN_TICKS
+  ) {
     b.spawnTimer = 0;
     b.spawned++;
     b.people.carrier++;
@@ -167,6 +177,8 @@ export function newSettler(world: World, owner: number, job: Job, node: number):
     targetFlag: 0,
     targetBuilding: 0,
     wait: 0,
+    home: 0,
+    targetNode: -1,
   };
   world.settlers[id] = s;
   return s;
@@ -180,6 +192,7 @@ export function requestWorkers(world: World): void {
     if (!road.carriers[0]) dispatchWorker(world, road, 'carrier', 0);
     if (road.busy && !road.carriers[1]) dispatchWorker(world, road, 'donkey', 1);
   }
+  dispatchBuildingWorkers(world);
 }
 
 function dispatchWorker(world: World, road: Road, job: Job, slot: 0 | 1): void {

@@ -33,8 +33,29 @@ export const WARE_TYPES = [
 export type WareType = (typeof WARE_TYPES)[number];
 
 /** Berufe (Siedlerarten). Personen im Lager werden als Zähler geführt. */
-export const JOBS = ['carrier', 'donkey'] as const;
+export const JOBS = [
+  'carrier',
+  'donkey',
+  'builder',
+  'leveler',
+  'woodcutter',
+  'forester',
+  'stonecutter',
+  'sawyer',
+] as const;
 export type Job = (typeof JOBS)[number];
+
+/** Werkzeug, mit dem aus einem Träger dieser Beruf wird (null = kein Werkzeug nötig). */
+export const JOB_TOOLS: Record<Job, WareType | null> = {
+  carrier: null,
+  donkey: null,
+  builder: 'hammer',
+  leveler: 'shovel',
+  woodcutter: 'axe',
+  forester: 'shovel',
+  stonecutter: 'pick',
+  sawyer: 'saw',
+};
 
 export type WareCounts = Record<WareType, number>;
 export type JobCounts = Record<Job, number>;

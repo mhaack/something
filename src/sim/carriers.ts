@@ -7,6 +7,7 @@ import type { Road, Settler, Ware } from './entities';
 import { releaseSettler, roadIndexOf, roadSlice } from './roads';
 import { enqueueRoute, findNearestStoreAnywhere, freePath } from './routing';
 import { acceptWare, flagAccepts, startNextStep } from './store';
+import { standWorker } from './workers';
 import type { World } from './world';
 
 export function updateSettler(world: World, s: Settler): void {
@@ -75,6 +76,8 @@ function stand(world: World, s: Settler): void {
       return goHome(world, s);
     case 'enterStore':
       return enterStore(world, s);
+    default:
+      return standWorker(world, s);
   }
 }
 
@@ -201,7 +204,7 @@ function arriveWithWare(world: World, s: Settler): void {
   s.wait = TRANSPORT.DROP_TICKS;
 }
 
-function putOnFlag(world: World, w: Ware, flagId: number): void {
+export function putOnFlag(world: World, w: Ware, flagId: number): void {
   const f = world.flags[flagId];
   f.wares.push(w.id);
   w.flag = flagId;

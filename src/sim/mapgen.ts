@@ -1,4 +1,4 @@
-import { MAP, START } from '../data/balance';
+import { MAP, START, TREES } from '../data/balance';
 import { MapObject, Resource, Terrain, terrainInfo } from '../data/terrain';
 import {
   TRI_DOWN,
@@ -161,7 +161,8 @@ function isRockSpot(map: GameMap, i: number): boolean {
 
 function placeTree(map: GameMap, i: number, rng: RngState): void {
   map.objects[i] = MapObject.Tree;
-  map.objectData[i] = nextInt(rng, 0, 3);
+  // Art in Bits 0–1, ausgewachsene Stufe ab Bit 2 (siehe trees.ts).
+  map.objectData[i] = nextInt(rng, 0, 3) | (TREES.MATURE_STAGE << 2);
 }
 
 function placeRock(map: GameMap, i: number, rng: RngState): void {

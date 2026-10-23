@@ -3,6 +3,7 @@ import { MapObject } from '../data/terrain';
 import { DIRS, nodesInRadius } from './geometry';
 import { isWalkableTerrain } from './map';
 import { removeRoad, splitRoad } from './roads';
+import { removeBuilding } from './buildings';
 import { findNearestStoreAnywhere, markNetworkChanged } from './routing';
 import { allocId, type World } from './world';
 import type { Flag } from './entities';
@@ -42,12 +43,16 @@ export function placeFlag(world: World, player: number, node: number): Flag {
 }
 
 /**
- * Entfernt eine Flagge samt angeschlossener Straßen. Flaggen mit Gebäude können nicht entfernt
- * werden. Waren auf der Flagge gehen ins nächste Lager des Besitzers (Annahme A9).
+ * Entfernt eine Flagge samt angeschlossener Straßen und ihres Gebäudes (nicht beim HQ).
+ * Waren auf der Flagge gehen ins nächste Lager des Besitzers (Annahme A9).
  */
 export function removeFlag(world: World, flagId: number): boolean {
   const flag = world.flags[flagId];
-  if (!flag || flag.building) return false;
+  if (!flag) return false;
+  if (flag.building) {
+    // Mit der Flagge fällt auch das Gebäude – außer beim Hauptquartier.
+    if (!removeBuilding(world, flag.building)) return false;
+  }
   for (const r of flag.roads) if (r > 0) removeRoad(world, r);
   for (const wid of flag.wares) {
     const w = world.wares[wid];
