@@ -233,63 +233,152 @@ export function makeHQ(color: RGB): Sprite {
 
 const SKIN: RGB = [228, 180, 136];
 const SKIN_DARK: RGB = [190, 140, 100];
-const HAT: RGB = [200, 172, 96];
-const HAT_DARK: RGB = [150, 124, 64];
 const PANTS: RGB = [74, 64, 96];
 const PANTS_DARK: RGB = [54, 46, 72];
 const BOOTS: RGB = [52, 36, 22];
 const BELT: RGB = [96, 62, 30];
 
+export type FigurePose = 'walk' | 'carry' | 'work';
+
+/** Aussehen einer Berufsfigur. */
+export interface FigureLook {
+  hat: RGB;
+  hatStyle: 'brim' | 'cap' | 'hood';
+  apron?: RGB;
+  tool: 'axe' | 'shovel' | 'pick' | 'hammer' | 'saw' | null;
+}
+
+export const FIGURE_LOOKS: Record<string, FigureLook> = {
+  carrier: { hat: [200, 172, 96], hatStyle: 'brim', tool: null },
+  builder: { hat: [190, 60, 40], hatStyle: 'cap', tool: 'hammer' },
+  leveler: { hat: [130, 96, 56], hatStyle: 'brim', tool: 'shovel' },
+  woodcutter: { hat: [60, 110, 50], hatStyle: 'hood', tool: 'axe' },
+  forester: { hat: [70, 130, 60], hatStyle: 'brim', tool: 'shovel' },
+  stonecutter: { hat: [130, 130, 136], hatStyle: 'cap', tool: 'pick' },
+  sawyer: { hat: [70, 90, 160], hatStyle: 'cap', apron: [220, 210, 186], tool: 'saw' },
+};
+
+const METAL: RGB = [196, 198, 208];
+const METAL_DARK: RGB = [120, 122, 132];
+const FIG_HANDLE: RGB = [130, 90, 50];
+
+/** Werkzeug von (x0,y0) (Hand) in Richtung (dx,dy) mit Kopf am Ende. */
+function drawHeldTool(
+  b: PixelBuffer,
+  tool: NonNullable<FigureLook['tool']>,
+  x0: number,
+  y0: number,
+  dx: number,
+  dy: number,
+): void {
+  const len = tool === 'saw' ? 6 : 5;
+  for (let k = 0; k < len; k++) {
+    const c = tool === 'saw' && k > 0 ? (k % 2 ? METAL : METAL_DARK) : FIG_HANDLE;
+    b.set(x0 + Math.round(dx * k), y0 + Math.round(dy * k), c);
+  }
+  const hx = x0 + Math.round(dx * (len - 1));
+  const hy = y0 + Math.round(dy * (len - 1));
+  switch (tool) {
+    case 'axe':
+      b.rect(hx - 1, hy - 1, 2, 3, METAL);
+      b.set(hx - 2, hy, METAL_DARK);
+      break;
+    case 'hammer':
+      b.rect(hx - 1, hy - 1, 3, 2, METAL_DARK);
+      b.set(hx - 1, hy - 1, METAL);
+      break;
+    case 'pick':
+      b.set(hx - 1, hy, METAL);
+      b.set(hx + 1, hy, METAL);
+      b.set(hx - 2, hy + 1, METAL_DARK);
+      b.set(hx + 2, hy + 1, METAL_DARK);
+      b.set(hx, hy, METAL_DARK);
+      break;
+    case 'shovel':
+      b.rect(hx, hy, 2, 3, METAL);
+      b.set(hx + 1, hy + 2, METAL_DARK);
+      break;
+    case 'saw':
+      b.set(hx, hy, FIG_HANDLE);
+      break;
+  }
+}
+
 /**
- * Träger (nach rechts blickend), 4 Laufphasen. Mit Last trägt er die Ware mit erhobenen Armen,
- * ohne Last schwingen die Arme.
+ * Figur (nach rechts blickend). `walk`/`carry`: 4 Laufphasen, mit Last trägt sie die Ware mit
+ * erhobenen Armen. `work`: 2 Phasen (Werkzeug oben / unten).
  */
-export function makeCarrier(color: RGB, frame: number, loaded: boolean): Sprite {
-  const b = new PixelBuffer(13, 20);
+export function makeFigure(color: RGB, frame: number, pose: FigurePose, look: FigureLook): Sprite {
+  const b = new PixelBuffer(18, 22);
   const shirt = shade(color, 0.9);
   const shirtLight = shade(color, 1.2);
   const shirtDark = shade(color, 0.65);
-  const bob = frame % 2 === 1 ? 1 : 0;
-  const top = 2 + bob;
-  const cx = 6;
-  // Hut
-  b.rect(cx - 3, top + 1, 6, 1, HAT_DARK);
-  b.rect(cx - 2, top, 4, 1, HAT);
-  b.rect(cx - 1, top - 1, 3, 1, HAT);
+  const working = pose === 'work';
+  const bob = !working && frame % 2 === 1 ? 1 : 0;
+  const top = 4 + bob;
+  const cx = 7;
+  const hatDark = shade(look.hat, 0.72);
+  // Kopfbedeckung
+  if (look.hatStyle === 'brim') {
+    b.rect(cx - 3, top + 1, 6, 1, hatDark);
+    b.rect(cx - 2, top, 4, 1, look.hat);
+    b.rect(cx - 1, top - 1, 3, 1, look.hat);
+  } else if (look.hatStyle === 'cap') {
+    b.rect(cx - 2, top, 4, 2, look.hat);
+    b.rect(cx + 1, top + 1, 2, 1, hatDark);
+  } else {
+    b.rect(cx - 2, top, 4, 2, look.hat);
+    b.rect(cx - 3, top + 1, 1, 4, hatDark);
+  }
   // Kopf
   b.rect(cx - 2, top + 2, 4, 3, SKIN);
   b.set(cx - 2, top + 2, SKIN_DARK);
-  b.set(cx + 1, top + 3, [40, 30, 30]); // Auge
-  b.set(cx + 2, top + 4, SKIN); // Nase
-  b.set(cx - 2, top + 4, [110, 70, 40]); // Haar hinten
+  b.set(cx + 1, top + 3, [40, 30, 30]);
+  b.set(cx + 2, top + 4, SKIN);
+  if (look.hatStyle !== 'hood') b.set(cx - 2, top + 4, [110, 70, 40]);
   // Rumpf
   for (let y = 0; y < 6; y++) {
     for (let x = -2; x <= 1; x++) {
-      const c = x === -2 ? shirtLight : x === 1 ? shirtDark : shirt;
+      let c = x === -2 ? shirtLight : x === 1 ? shirtDark : shirt;
+      if (look.apron && y >= 2 && x >= 0) c = look.apron;
       b.set(cx + x, top + 5 + y, c);
     }
   }
   b.rect(cx - 2, top + 9, 4, 1, BELT);
-  // Arme
-  if (loaded) {
+  // Arme und Werkzeug
+  if (pose === 'carry') {
     b.rect(cx - 3, top + 3, 1, 3, shirtLight);
     b.rect(cx + 2, top + 3, 1, 3, shirtDark);
     b.set(cx - 3, top + 2, SKIN);
     b.set(cx + 2, top + 2, SKIN);
+  } else if (working) {
+    if (frame === 0) {
+      b.rect(cx + 2, top + 2, 1, 3, shirtDark);
+      b.set(cx + 2, top + 1, SKIN);
+      if (look.tool) drawHeldTool(b, look.tool, cx + 3, top + 1, 0.6, -0.9);
+    } else {
+      b.rect(cx + 2, top + 5, 2, 1, shirtDark);
+      b.set(cx + 4, top + 6, SKIN);
+      if (look.tool) drawHeldTool(b, look.tool, cx + 4, top + 6, 0.8, 0.7);
+    }
+    b.rect(cx - 3, top + 5, 1, 3, shirtLight);
   } else {
     const swing = [0, 1, 0, -1][frame];
     b.rect(cx - 3, top + 5, 1, 3, shirtLight);
     b.set(cx - 3 - swing, top + 8, SKIN);
     b.rect(cx + 2, top + 5, 1, 3, shirtDark);
     b.set(cx + 2 + swing, top + 8, SKIN);
+    if (look.tool) drawHeldTool(b, look.tool, cx + 3 + swing, top + 8, 0.7, -0.8);
   }
-  // Beine (Schrittstellung je Phase)
-  const stride = [
-    [-1, 1],
-    [0, 0],
-    [1, -1],
-    [0, 0],
-  ][frame];
+  // Beine
+  const stride = working
+    ? [0, 0]
+    : [
+        [-1, 1],
+        [0, 0],
+        [1, -1],
+        [0, 0],
+      ][frame];
   const legTop = top + 11;
   const legLen = 5 - bob;
   for (let y = 0; y < legLen; y++) {
@@ -302,8 +391,13 @@ export function makeCarrier(color: RGB, frame: number, loaded: boolean): Sprite 
   b.set(cx + stride[1], legTop + legLen, BOOTS);
   b.set(cx + 1 + stride[1], legTop + legLen, BOOTS);
   b.outline(OUTLINE);
-  b.shadow(cx + 1, 18, 4, 1.3, 80);
-  return b.toSprite(cx, 18);
+  b.shadow(cx + 1, 20, 4, 1.3, 80);
+  return b.toSprite(cx, 20);
+}
+
+/** Träger (Kompatibilität): Figur mit Strohhut, mit oder ohne Last. */
+export function makeCarrier(color: RGB, frame: number, loaded: boolean): Sprite {
+  return makeFigure(color, frame, loaded ? 'carry' : 'walk', FIGURE_LOOKS.carrier);
 }
 
 /** Esel (nach rechts blickend), 4 Laufphasen. */

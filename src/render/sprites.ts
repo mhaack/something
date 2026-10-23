@@ -5,15 +5,25 @@
 import { hash2 } from '../sim/rng';
 import { WARE_TYPES, type WareType } from '../data/wares';
 import { type RGB } from './palette';
+import { BUILDINGS, type BuildingType } from '../data/buildings';
+import { JOBS, type Job } from '../data/wares';
 import {
+  FIGURE_LOOKS,
   makeBorderPost,
-  makeCarrier,
   makeDonkey,
+  makeFigure,
   makeFlag,
   makeHQ,
   makeWare,
   mirror,
 } from './spritesUnits';
+import {
+  makeBuilding,
+  makeSapling,
+  makeScaffold,
+  makeStakes,
+  makeStatusIcon,
+} from './spritesBuildings';
 
 export interface Sprite {
   canvas: HTMLCanvasElement;
@@ -381,19 +391,30 @@ function makeDecoration(kind: number): Sprite {
 
 export const DECORATION_KINDS = 10;
 
+/** Laufen ohne Last, Laufen mit Last, Arbeiten – je [Spieler][Blick][Frame]. */
+export interface FigureSprites {
+  walk: Sprite[][][];
+  carry: Sprite[][][];
+  work: Sprite[][][];
+}
+
 export interface SpriteSet {
   /** [Variante][Windphase] */
   trees: Sprite[][];
+  /** [Variante][Stufe 0..2] */
+  saplings: Sprite[][];
   rocks: Sprite[][];
   decorations: Sprite[];
   /** [Spieler][Frame] */
   flags: Sprite[][];
   borderPosts: Sprite[];
-  hq: Sprite[];
-  /** [Spieler][Blick 0=rechts,1=links][Frame], mit Last auf den Schultern */
-  carriers: Sprite[][][];
-  /** wie `carriers`, ohne Last */
-  carriersEmpty: Sprite[][][];
+  /** [Typ][Spieler] */
+  buildings: Record<BuildingType, Sprite[]>;
+  scaffolds: Record<BuildingType, Sprite>;
+  stakes: Sprite;
+  statusIcons: Sprite[];
+  /** Figuren je Beruf (Esel separat). */
+  figures: Record<Job, FigureSprites>;
   /** [Blick][Frame] */
   donkeys: Sprite[][];
   wares: Record<WareType, Sprite>;
@@ -402,6 +423,7 @@ export interface SpriteSet {
 export const ROCK_SIZES = 3;
 export const WALK_FRAMES = 4;
 export const FLAG_FRAMES = 4;
+export const WORK_FRAMES = 2;
 /** Windphasen der Bäume (Pendel: -1, 0, 1, 0). */
 export const TREE_FRAMES = 4;
 const SWAY = [-1, 0, 1, 0];
@@ -418,22 +440,43 @@ export function buildSprites(playerColors: RGB[]): SpriteSet {
     (s) => makePineTree(0, false, s),
     (s) => makePineTree(1, true, s),
   ];
-  const carriersFor = (loaded: boolean): Sprite[][][] =>
-    playerColors.map((c) => {
-      const right = frames((i) => makeCarrier(c, i, loaded), WALK_FRAMES);
-      return [right, right.map(mirror)];
-    });
+  const both = (right: Sprite[]): Sprite[][] => [right, right.map(mirror)];
+  const figures = {} as Record<Job, FigureSprites>;
+  for (const job of JOBS) {
+    const look = FIGURE_LOOKS[job] ?? FIGURE_LOOKS.carrier;
+    figures[job] = {
+      walk: playerColors.map((c) =>
+        both(frames((i) => makeFigure(c, i, 'walk', look), WALK_FRAMES)),
+      ),
+      carry: playerColors.map((c) =>
+        both(frames((i) => makeFigure(c, i, 'carry', look), WALK_FRAMES)),
+      ),
+      work: playerColors.map((c) =>
+        both(frames((i) => makeFigure(c, i, 'work', look), WORK_FRAMES)),
+      ),
+    };
+  }
+  const buildings = {} as Record<BuildingType, Sprite[]>;
+  const scaffolds = {} as Record<BuildingType, Sprite>;
+  for (const type of Object.keys(BUILDINGS) as BuildingType[]) {
+    buildings[type] = playerColors.map((c) => (type === 'hq' ? makeHQ(c) : makeBuilding(type, c)));
+    const ref = buildings[type][0];
+    scaffolds[type] = makeScaffold(Math.round(ref.w * 0.7), Math.round(ref.h * 0.75));
+  }
   return {
     trees: treeVariants.map((mk) => SWAY.map((s) => mk(s))),
+    saplings: [0, 1, 2, 3].map((v) => [0, 1, 2].map((st) => makeSapling(v, st))),
     rocks: [0, 1].map((v) =>
       Array.from({ length: ROCK_SIZES }, (_, s) => makeRock(v, (s + 1) / ROCK_SIZES)),
     ),
     decorations: frames(makeDecoration, DECORATION_KINDS),
     flags: playerColors.map((c) => frames((i) => makeFlag(c, i), FLAG_FRAMES)),
     borderPosts: playerColors.map(makeBorderPost),
-    hq: playerColors.map(makeHQ),
-    carriers: carriersFor(true),
-    carriersEmpty: carriersFor(false),
+    buildings,
+    scaffolds,
+    stakes: makeStakes(),
+    statusIcons: [makeStatusIcon(0), makeStatusIcon(1)],
+    figures,
     donkeys: [donkeyR, donkeyR.map(mirror)],
     wares,
   };

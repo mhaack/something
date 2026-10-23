@@ -1,9 +1,14 @@
-import { MAP, TRANSPORT, VIEW } from '../data/balance';
+import { MAP, TRANSPORT, TREES, VIEW } from '../data/balance';
 import { MapObject, Terrain } from '../data/terrain';
 import type { Settler } from '../sim/entities';
 import { canPlaceFlag } from '../sim/flags';
 import { DIRS, neighbor } from '../sim/geometry';
 import { slopeClass } from '../sim/roads';
+import { buildSize } from '../sim/buildings';
+import { buildProgress } from '../sim/workers';
+import { treeStage, treeVariant } from '../sim/trees';
+import type { BuildingType } from '../data/buildings';
+import type { Building } from '../sim/entities';
 import { hash2 } from '../sim/rng';
 import { plannedRoute, waitingFor } from '../sim/routing';
 import type { World } from '../sim/world';
@@ -15,6 +20,7 @@ import {
   ROCK_SIZES,
   TREE_FRAMES,
   WALK_FRAMES,
+  WORK_FRAMES,
   buildSprites,
   type Sprite,
   type SpriteSet,
@@ -47,6 +53,8 @@ export interface RenderOptions {
   selectedNode: number;
   /** Knoten für eine halbtransparente Vorschauflagge (-1 = keine). */
   ghostFlag: number;
+  /** Halbtransparente Gebäudevorschau. */
+  ghostBuilding: { node: number; type: BuildingType } | null;
 }
 
 /** Ablageplätze der Waren um den Flaggenmast (relativ zum Knoten). */
@@ -81,6 +89,9 @@ export class Renderer {
   private terrain: TerrainCache;
   private sprites: SpriteSet;
   private alpha = 0;
+  private anim = 0;
+  private revision = -1;
+  private heightsSeen: Int16Array = new Int16Array(0);
   stats: RenderStats = { chunksDrawn: 0, objectsDrawn: 0, settlersDrawn: 0, cachedChunks: 0 };
 
   constructor(
@@ -95,6 +106,27 @@ export class Renderer {
   setWorld(world: World): void {
     this.world = world;
     this.terrain = new TerrainCache(world.map);
+    this.revision = -1;
+  }
+
+  /** Erkennt geänderte Höhen (Planierer) und verwirft betroffene Terrain-Chunks. */
+  private syncMap(): void {
+    const w = this.world;
+    if (w.mapRevision === this.revision) return;
+    const h = w.map.heights;
+    if (this.heightsSeen.length !== h.length || this.revision < 0) {
+      this.heightsSeen = Int16Array.from(h);
+    } else {
+      const changed: number[] = [];
+      for (let i = 0; i < h.length; i++) {
+        if (h[i] !== this.heightsSeen[i]) {
+          changed.push(i);
+          this.heightsSeen[i] = h[i];
+        }
+      }
+      if (changed.length) this.terrain.invalidateNodes(changed);
+    }
+    this.revision = w.mapRevision;
   }
 
   get terrainCache(): TerrainCache {
@@ -111,11 +143,13 @@ export class Renderer {
   draw(cam: Camera, alpha: number, opts: RenderOptions): void {
     const ctx = this.ctx;
     this.alpha = alpha;
+    this.anim = opts.animMs;
     ctx.imageSmoothingEnabled = false;
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, cam.width, cam.height);
     const camX = Math.round(cam.x);
     const camY = Math.round(cam.y);
+    this.syncMap();
     this.drawTerrain(cam, camX, camY);
     this.drawWater(cam, camX, camY, opts.animMs);
     this.drawRoads(cam, camX, camY, opts);
@@ -303,8 +337,15 @@ export class Renderer {
           this.ctx.globalAlpha = 1;
         }
         if (obj === MapObject.Tree) {
-          const phase = Math.floor(opts.animMs / 420 + hash2(x, y, 3) * TREE_FRAMES) % TREE_FRAMES;
-          this.blit(this.sprites.trees[map.objectData[i] & 3][phase], sx, sy);
+          const data = map.objectData[i];
+          const stage = treeStage(data);
+          if (stage < TREES.MATURE_STAGE) {
+            this.blit(this.sprites.saplings[treeVariant(data)][Math.min(2, stage)], sx, sy);
+          } else {
+            const phase =
+              Math.floor(opts.animMs / 420 + hash2(x, y, 3) * TREE_FRAMES) % TREE_FRAMES;
+            this.blit(this.sprites.trees[treeVariant(data)][phase], sx, sy);
+          }
           objects++;
         } else if (obj === MapObject.Rock) {
           const size = Math.min(
@@ -318,9 +359,14 @@ export class Renderer {
         if (bid) {
           const b = world.buildings[bid];
           if (b && b.node === i) {
-            this.blit(this.sprites.hq[world.players[b.owner].color], sx, sy);
+            this.drawBuilding(b, sx, sy, opts);
             objects++;
           }
+        } else if (opts.ghostBuilding && opts.ghostBuilding.node === i) {
+          this.ctx.globalAlpha = 0.5;
+          const color = world.players[opts.player].color;
+          this.blit(this.sprites.buildings[opts.ghostBuilding.type][color], sx, sy);
+          this.ctx.globalAlpha = 1;
         }
         const fid = world.nodeFlag[i];
         if (fid) {
@@ -353,13 +399,17 @@ export class Renderer {
   private drawSettler(s: Settler, camX: number, camY: number): number {
     const [x, y] = this.settlerPos(s, camX, camY);
     if (!this.onScreen(x, y)) return 0;
-    // Siedler im Gebäudeinneren nicht zeichnen.
-    if (s.next < 0 && this.world.nodeBuilding[s.node]) return 0;
+    const onSite = s.state === 'building' || s.state === 'leveling';
+    // Siedler im Gebäudeinneren nicht zeichnen (Bauleute auf der Baustelle schon).
+    if (s.next < 0 && this.world.nodeBuilding[s.node] && !onSite) return 0;
     let facingLeft = false;
     if (s.next >= 0) {
       const [nx] = this.nodePos(s.next, camX, camY);
       const [ox] = this.nodePos(s.node, camX, camY);
       facingLeft = nx < ox;
+    } else if (s.targetNode >= 0) {
+      const [tx] = this.nodePos(s.targetNode, camX, camY);
+      facingLeft = tx < x;
     }
     const moving = s.next >= 0;
     const frame = moving
@@ -371,22 +421,93 @@ export class Renderer {
     if (s.job === 'donkey') {
       this.blit(this.sprites.donkeys[dir][frame], x, y);
       if (ware) this.blit(this.sprites.wares[ware.type], x - (facingLeft ? -1 : 1), y - 7);
+      return 1;
+    }
+    const color = this.world.players[s.owner].color;
+    const fig = this.sprites.figures[s.job];
+    const working = s.next < 0 && (s.state === 'harvest' || (onSite && s.wait > 0));
+    if (working) {
+      const wf = Math.floor(this.anim / 260 + s.id) % WORK_FRAMES;
+      const ox = onSite ? 10 : 0;
+      this.blit(fig.work[color][onSite ? 1 : dir][wf], x + ox, y + (onSite ? 6 : 0));
     } else {
-      const color = this.world.players[s.owner].color;
-      const set = ware ? this.sprites.carriers : this.sprites.carriersEmpty;
-      this.blit(set[color][dir][frame], x, y);
+      this.blit((ware ? fig.carry : fig.walk)[color][dir][frame], x, y);
       if (ware) this.blit(this.sprites.wares[ware.type], x, y - 15 + (frame % 2));
     }
     return 1;
   }
 
+  /** Bauhilfe: Symbol für die größte mögliche Bebauung (Flagge, klein, mittel, groß, Mine). */
   private drawBuildHelp(i: number, sx: number, sy: number, opts: RenderOptions): void {
-    if (canPlaceFlag(this.world, opts.player, i) !== 'ok') return;
     const ctx = this.ctx;
+    const size = buildSize(this.world, opts.player, i);
+    if (!size) {
+      if (canPlaceFlag(this.world, opts.player, i) !== 'ok') return;
+      ctx.fillStyle = '#20180c';
+      ctx.fillRect(sx - 1, sy - 6, 1, 7);
+      ctx.fillStyle = '#f0d040';
+      ctx.fillRect(sx, sy - 6, 3, 2);
+      return;
+    }
+    const dim = size === 'large' ? 7 : size === 'medium' ? 5 : 3;
+    const color =
+      size === 'mine'
+        ? '#c08040'
+        : size === 'large'
+          ? '#f0d040'
+          : size === 'medium'
+            ? '#f0e070'
+            : '#f8f0b0';
+    // Häuschen-Symbol: dunkler Rahmen, helle Füllung, Dach
     ctx.fillStyle = '#20180c';
-    ctx.fillRect(sx - 1, sy - 6, 1, 7);
-    ctx.fillStyle = '#f0d040';
-    ctx.fillRect(sx, sy - 6, 3, 2);
+    ctx.fillRect(sx - (dim >> 1) - 1, sy - dim - 1, dim + 2, dim + 2);
+    ctx.fillStyle = color;
+    ctx.fillRect(sx - (dim >> 1), sy - dim, dim, dim);
+    ctx.fillStyle = '#b03020';
+    ctx.fillRect(sx - (dim >> 1), sy - dim - 2, dim, 2);
+  }
+
+  /** Gebäude, Baustelle (Absteckung, wachsender Bau mit Gerüst, Material) und Statussymbol. */
+  private drawBuilding(b: Building, sx: number, sy: number, opts: RenderOptions): void {
+    const color = this.world.players[b.owner].color;
+    const sprite = this.sprites.buildings[b.type][color];
+    if (!b.site) {
+      this.blit(sprite, sx, sy);
+      if (b.status === 'noResources' || b.status === 'outputBlocked') {
+        const icon = this.sprites.statusIcons[b.status === 'noResources' ? 0 : 1];
+        const bob = Math.floor(opts.animMs / 400) % 2;
+        this.blit(icon, sx, sy - sprite.ay - 2 - bob);
+      }
+      return;
+    }
+    if (b.site.stage === 'level') {
+      this.blit(this.sprites.stakes, sx, sy);
+      return;
+    }
+    const p = buildProgress(this.world, b);
+    const visible = Math.round(sprite.h * p);
+    if (visible > 0) {
+      const top = Math.round(sy - sprite.ay) + (sprite.h - visible);
+      this.ctx.drawImage(
+        sprite.canvas,
+        0,
+        sprite.h - visible,
+        sprite.w,
+        visible,
+        Math.round(sx - sprite.ax),
+        top,
+        sprite.w,
+        visible,
+      );
+    }
+    this.blit(this.sprites.scaffolds[b.type], sx, sy);
+    // Angeliefertes Material neben der Baustelle
+    let k = 0;
+    for (const type of ['planks', 'stone'] as const) {
+      for (let n = 0; n < Math.min(4, b.stock[type]); n++, k++) {
+        this.blit(this.sprites.wares[type], sx - 14 - (k % 2) * 7, sy + 2 - (k >> 1) * 3);
+      }
+    }
   }
 
   /** Rautenförmige Knotenmarkierung mit dunklem Schatten. */
