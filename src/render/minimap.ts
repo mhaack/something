@@ -80,6 +80,7 @@ export class Minimap {
             Math.round(c[2] * (1 - k) + pc[2] * k),
           ];
         }
+        if (this.world.nodeRoad[i] || this.world.nodeFlag[i]) c = [150, 110, 60];
         if (this.world.nodeBuilding[i]) c = [240, 232, 210];
         const px = x * 2 + (y & 1);
         put(px, y, c);

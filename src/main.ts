@@ -459,6 +459,17 @@ class Game {
     return cmds;
   }
 
+  /** Ändert sich, wenn die Minikarte neu gezeichnet werden muss (Karte, Straßen, Gebäude). */
+  private minimapKey(): number {
+    const w = this.world;
+    return (
+      w.mapRevision * 1_000_003 +
+      Object.keys(w.roads).length * 1009 +
+      Object.keys(w.buildings).length * 7 +
+      Object.keys(w.flags).length
+    );
+  }
+
   /** Befehl des Spielers vormerken; jede Aktion bekommt ein kurzes Geräusch. */
   private enqueue(c: Command): void {
     this.pending.push(c);
@@ -678,9 +689,9 @@ class Game {
       ghostBuilding: this.tools.ghostBuilding,
     });
     // Minikarte nach Kartenänderungen (Bäume, Felsen, Planieren) gedrosselt neu aufbauen.
-    if (this.world.mapRevision !== this.minimapRevision && ts - this.minimapBuilt > 1500) {
+    if (ts - this.minimapBuilt > 1500 && this.minimapKey() !== this.minimapRevision) {
       this.minimap.rebuild();
-      this.minimapRevision = this.world.mapRevision;
+      this.minimapRevision = this.minimapKey();
       this.minimapBuilt = ts;
     }
     this.info.refresh();
