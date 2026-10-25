@@ -89,7 +89,11 @@ const de = {
   'stats.tab.wares': 'Waren',
   'stats.tab.history': 'Verlauf',
   'stats.tab.people': 'Siedler',
-  'stats.tab.tools': 'Werkzeuge',
+  'stats.tab.tools': 'Werkzeuge & Waffen',
+  'stats.weaponsTitle': 'Waffen',
+  'stats.weaponsHint':
+    'Die Waffenschmiede stellt Schwerter und Schilde im Verhältnis dieser Regler her (beide 0 = Pause). Ein Soldat braucht je ein Schwert und einen Schild.',
+  'stats.recruits': 'Damit sind {n} neue Soldaten möglich.',
   'stats.tab.distribution': 'Verteilung',
   'stats.distHint':
     'Knappe Waren gehen im Verhältnis dieser Gewichte an die Betriebe; 0 = bekommt nichts.',

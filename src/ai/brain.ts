@@ -7,7 +7,14 @@ import { AI, GEOLOGIST, MILITARY, type AiLevel } from '../data/balance';
 import { BUILDINGS, isMilitaryType, type BuildingType } from '../data/buildings';
 import { nodeDistance, nodesInRadius } from '../sim/geometry';
 import { claimRadius, claimsTerritory } from '../sim/territory';
-import { FOOD, JOB_TOOLS, TOOL_WARES, type ToolWare } from '../data/wares';
+import {
+  FOOD,
+  JOB_TOOLS,
+  TOOL_WARES,
+  WEAPON_WARES,
+  type ToolWare,
+  type WeaponWare,
+} from '../data/wares';
 import type { Command } from '../sim/commands';
 import type { DistributionGroupId } from '../data/distribution';
 import type { Building } from '../sim/entities';
@@ -171,6 +178,7 @@ export function think(
   if (AI.MANAGE_TOOLS[level]) {
     const urgent = manageTools(view, cmds);
     manageDistribution(view, cmds, urgent > 0);
+    manageWeapons(view, cmds);
   }
   const short = carriersShort(view);
   if (!short) build(view, cmds);
@@ -279,6 +287,19 @@ function manageTools(view: View, cmds: Command[]): number {
       cmds.push({ type: 'setToolPriority', player: view.player, tool: t, value: want });
   }
   return urgent.size;
+}
+
+/** Schwerter und Schilde im Gleichgewicht halten: Was knapper ist, wird bevorzugt. */
+function manageWeapons(view: View, cmds: Command[]): void {
+  const d = view.stock.sword - view.stock.shield;
+  const want: Record<WeaponWare, number> =
+    d > 0 ? { sword: 2, shield: 8 } : d < 0 ? { sword: 8, shield: 2 } : { sword: 5, shield: 5 };
+  const prio = view.world.players[view.player].weaponPriority;
+  for (const weapon of WEAPON_WARES) {
+    if (prio[weapon] !== want[weapon]) {
+      cmds.push({ type: 'setWeaponPriority', player: view.player, weapon, value: want[weapon] });
+    }
+  }
 }
 
 /**

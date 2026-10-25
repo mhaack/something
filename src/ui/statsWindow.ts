@@ -1,11 +1,20 @@
 /** Statistik-Fenster: Warenbestand, Verlaufsdiagramm, Siedler nach Beruf, Werkzeug-Prioritäten. */
-import { DISTRIBUTION, SIM, STATS, TOOLS } from '../data/balance';
+import { DISTRIBUTION, SIM, STATS, TOOLS, WEAPONS } from '../data/balance';
 import {
   DISTRIBUTION_GROUPS,
   DISTRIBUTION_GROUP_IDS,
   type DistributionGroupId,
 } from '../data/distribution';
-import { JOBS, JOB_TOOLS, TOOL_WARES, WARE_TYPES, type Job, type WareType } from '../data/wares';
+import {
+  JOBS,
+  JOB_TOOLS,
+  TOOL_WARES,
+  WARE_TYPES,
+  WEAPON_WARES,
+  type Job,
+  type WareType,
+  type WeaponWare,
+} from '../data/wares';
 import type { Command } from '../sim/commands';
 import { canSupply, neededJob } from '../sim/buildings';
 import { isStore } from '../sim/store';
@@ -469,7 +478,55 @@ export class StatsWindow {
         ]),
       );
     }
-    return [el('div', { className: 'panel-foot', text: t('stats.toolsHint') }), grid];
+    // Waffen: eigene Regler für die Waffenschmiede, dazu die möglichen neuen Soldaten.
+    const weapons = el('div', { className: 'tool-sliders' });
+    for (const weapon of WEAPON_WARES) {
+      const input = document.createElement('input');
+      input.type = 'range';
+      input.min = '0';
+      input.max = String(WEAPONS.PRIORITY_MAX);
+      input.value = String(p.weaponPriority[weapon]);
+      const value = el('span', { className: 'slider-value', text: input.value });
+      input.addEventListener('input', () => {
+        value.textContent = input.value;
+        this.enqueue({
+          type: 'setWeaponPriority',
+          player: this.player,
+          weapon,
+          value: Number(input.value),
+        });
+      });
+      this.sliders.set(`w:${weapon}`, input);
+      const stock = el('span', {
+        className: 'slider-stock',
+        text: `× ${w.ledger[this.player].wares[weapon]}`,
+      });
+      stock.dataset.tool = weapon;
+      weapons.append(
+        el('div', { className: 'slider-row' }, [
+          el('span', { className: 'ware-name' }, [wareIcon(weapon), tDyn(`ware.${weapon}`)]),
+          input,
+          value,
+          stock,
+        ]),
+      );
+    }
+    const recruits = el('div', { className: 'panel-foot recruits' });
+    recruits.dataset.recruits = '1';
+    recruits.textContent = this.recruitText(w);
+    return [
+      el('div', { className: 'panel-foot', text: t('stats.toolsHint') }),
+      grid,
+      el('div', { className: 'panel-sub', text: t('stats.weaponsTitle') }),
+      el('div', { className: 'panel-foot', text: t('stats.weaponsHint') }),
+      weapons,
+      recruits,
+    ];
+  }
+
+  private recruitText(w: World): string {
+    const l = w.ledger[this.player].wares;
+    return t('stats.recruits', { n: Math.min(l.sword, l.shield) });
   }
 
   // --- Verteilung ----------------------------------------------------------------------
@@ -528,10 +585,14 @@ export class StatsWindow {
 
   private updateSliders(w: World): void {
     const p = w.players[this.player];
-    for (const [tool, input] of this.sliders) {
-      if (document.activeElement !== input)
-        input.value = String(p.toolPriority[tool as keyof typeof p.toolPriority]);
+    for (const [key, input] of this.sliders) {
+      if (document.activeElement === input) continue;
+      input.value = key.startsWith('w:')
+        ? String(p.weaponPriority[key.slice(2) as WeaponWare])
+        : String(p.toolPriority[key as keyof typeof p.toolPriority]);
     }
+    const recruits = this.body.querySelector<HTMLElement>('[data-recruits]');
+    if (recruits) recruits.textContent = this.recruitText(w);
     this.body.querySelectorAll<HTMLElement>('.slider-stock').forEach((s) => {
       s.textContent = `× ${w.ledger[this.player].wares[s.dataset.tool as WareType]}`;
     });
