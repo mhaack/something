@@ -359,3 +359,30 @@ export function freePath(
   }
   return null;
 }
+
+/** Flaggen eines Spielers, die über Straßen mit einem seiner Lager verbunden sind. */
+export function storeConnectedFlags(world: World, owner: number): Set<number> {
+  const seen = new Set<number>();
+  const queue: number[] = [];
+  for (const id in world.buildings) {
+    const b = world.buildings[id];
+    if (b.owner === owner && isStore(b) && !b.site && !seen.has(b.flag)) {
+      seen.add(b.flag);
+      queue.push(b.flag);
+    }
+  }
+  for (let q = 0; q < queue.length; q++) {
+    const f = world.flags[queue[q]];
+    if (!f) continue;
+    for (const r of f.roads) {
+      if (r <= 0) continue;
+      const road = world.roads[r];
+      const other = road.flagA === f.id ? road.flagB : road.flagA;
+      if (!seen.has(other)) {
+        seen.add(other);
+        queue.push(other);
+      }
+    }
+  }
+  return seen;
+}
