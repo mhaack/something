@@ -1,6 +1,16 @@
 # STATUS
 
-## Aktuelle Phase: 8 abgeschlossen (alle geplanten Phasen fertig)
+## Aktuelle Phase: 8 abgeschlossen (alle geplanten Phasen fertig), dazu Rückmeldungen aus Testspielen
+
+### Erledigt (Nachbesserungen nach Testspielen)
+- Waffen wie Werkzeuge: Prioritäten für Schwert und Schild, Bestand und mögliche neue Soldaten im
+  Reiter „Werkzeuge & Waffen“; die KI hält beide im Gleichgewicht; Startbestand je 10 (A57).
+- Alle Waren neu als detaillierte Pixelbilder (A58).
+- Arbeitsstand im Gebäudefenster mit Grund und Hinweis, Ausrufezeichen über stillstehenden
+  Betrieben (A59).
+- Übersichtsfenster „Reich“ mit den wichtigsten Kennzahlen (A60).
+- Tests: 146.
+
 
 ### Erledigt (Phase 8)
 - Hauptmenü mit Hintergrundpartie zwischen Computerspielern; Spielmenü mit Esc (Weiterspielen,
@@ -179,4 +189,4 @@
 - Siedler laufen auf Straßen durcheinander hindurch (kein Ausweichen), wie im Original.
 
 ### Annahmen
-Siehe PLAN.md, Abschnitt 5 (A1–A56).
+Siehe PLAN.md, Abschnitt 5 (A1–A60).

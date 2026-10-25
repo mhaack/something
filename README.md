@@ -44,7 +44,8 @@ Tastenübersicht im Spiel.
 | Spielmenü (Speichern, Laden, Einstellungen, Hauptmenü) | `Esc` |
 | Neues Spiel (freies Spiel oder Mission) | `N` oder Leistenknopf |
 | Ton an/aus | `K` oder Lautsprecher oben links |
-| Statistik (Waren, Verlauf, Siedler, Werkzeug-Prioritäten, Warenverteilung) | `T` |
+| Übersicht „Reich“ (Bestände, Siedler, Soldaten, Stillstände) | `O` oder Leistenknopf |
+| Statistik (Waren, Verlauf, Siedler, Werkzeug- und Waffenprioritäten, Warenverteilung) | `T` |
 | Hilfe / Debug | `F1` / `F3` |
 | Neue Zufallskarte | `N` |
 

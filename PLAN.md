@@ -253,3 +253,17 @@ STATUS.md und Commit.
 - A56: Startbestand an Werkzeugen leicht erhöht (Spitzhacke 6, Angel 3, Sense 3, Hackbeil 2,
   Nudelholz 2, Schmelztiegel 2), sonst blieben Metzger, Bäcker und Bergleute lange ohne Arbeiter.
   Abgerissene fertige Gebäude brennen nieder (Anzeige), Baustellen verschwinden sofort.
+- A57: Waffen werden wie Werkzeuge gesteuert: Prioritätsregler für Schwert und Schild
+  (gewichteter Rundlauf, beide 0 = Waffenschmiede ruht), angezeigt mit Bestand im Statistik-Reiter
+  „Werkzeuge & Waffen“. Startbestand je 10 Schwerter und Schilde (skaliert mit den
+  Startbedingungen), damit auch ohne Gebirge eine erste Ausdehnung möglich ist.
+- A58: Waren sind handgesetzte Pixelbilder (13×11, `src/render/wareArt.ts`), damit sie auch beim
+  Tragen und auf Flaggen erkennbar sind; Warensymbole in Fenstern doppelt so groß.
+- A59: Arbeitsstand eines Betriebs (`src/sim/activity.ts`, nur Anzeige): arbeitet, Pause,
+  Arbeiter unterwegs oder Stillstand mit Grund (keine Straße, kein Arbeiter, Werkzeug fehlt,
+  nichts im Arbeitsbereich, Flagge voll, Waren fehlen, keine Aufträge). Kurze Wartezeiten zwischen
+  zwei Lieferungen gelten nicht als Stillstand. Über eigenen stillstehenden Betrieben steht ein
+  rotes bzw. gelbes Ausrufezeichen, bei fehlenden Waren oder Werkzeugen mit dem Warenbild.
+- A60: Übersichtsfenster „Reich“ (unten links, Taste `O`): wichtigste Bestände, Nahrung,
+  Werkzeuge, Waffen, Siedler, Soldaten mit Durchschnittsrang, Gebiet, Gebäude und Zahl der
+  stillstehenden Betriebe.
