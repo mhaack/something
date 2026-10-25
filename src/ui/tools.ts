@@ -15,6 +15,7 @@ import { buildSize, canBuild, canSupply } from '../sim/buildings';
 import type { Building } from '../sim/entities';
 import { searchFlags } from '../sim/routing';
 import { isStore } from '../sim/store';
+import { buildingActivity } from '../sim/activity';
 import { buildProgress } from '../sim/workers';
 import { availableAttackers, capacity, isAttackable } from '../sim/military';
 
@@ -27,21 +28,37 @@ function hasStoreConnection(world: World, b: Building): boolean {
   return res.found >= 0;
 }
 
-function statusText(b: Building, workerHere: boolean): string {
-  if (!workerHere) return t('status.noWorker');
-  switch (b.status) {
-    case 'noResources':
-      return t('status.noResources');
-    case 'outputBlocked':
-      return t('status.outputBlocked');
-    case 'waitingInput':
-      return t('status.waitingInput');
-    case 'noOrders':
-      return t('status.noOrders');
-    default:
-      return t('status.working');
+/** Arbeitsstand eines Betriebs: Punkt in Ampelfarbe, Beschreibung und bei Stillstand ein Hinweis. */
+function activityRows(world: World, b: Building, connected: boolean): HTMLElement[] {
+  const a = buildingActivity(world, b, connected);
+  if (a.kind === 'none') return [];
+  const names = a.missing.map((m) => tDyn(`ware.${m}`)).join(', ');
+  const head =
+    a.kind === 'stalled'
+      ? tDyn(`stall.${a.reason}`).replace('{wares}', names)
+      : t(`activity.${a.kind}`);
+  const level = a.kind === 'stalled' ? (STALL_RED.has(a.reason!) ? 'red' : 'yellow') : 'green';
+  const line = el('div', { className: `activity activity-${level}` }, [
+    el('span', { className: 'activity-dot' }),
+    el('span', { text: head }),
+  ]);
+  const out = [line];
+  if (a.missing.length) {
+    out.push(
+      el(
+        'div',
+        { className: 'activity-missing' },
+        a.missing.map((m) => wareIcon(m)),
+      ),
+    );
   }
+  if (a.kind === 'stalled') {
+    out.push(el('div', { className: 'panel-foot', text: tDyn(`stall.${a.reason}.hint`) }));
+  }
+  return out;
 }
+
+const STALL_RED = new Set(['noRoad', 'noWorker', 'noTool', 'noResources']);
 
 export type ToolMode = 'select' | 'flag' | 'road' | 'demolish' | 'build';
 
@@ -540,9 +557,7 @@ export class Tools {
         }
         rows.push(el('div', { className: 'panel-sub', text: t('panel.material') }), mats);
       } else {
-        rows.push(
-          el('div', { className: `status status-${b.status}`, text: statusText(b, workerHere) }),
-        );
+        rows.push(...activityRows(w, b, connected));
         const inputs = Object.entries(def.inputs) as [WareType, number][];
         if (inputs.length) {
           const grid = el('div', { className: 'ware-grid' });
@@ -588,7 +603,9 @@ export class Tools {
         );
       }
       if (def.kind === 'military' && !b.site) rows.unshift(...this.garrisonRows(b));
-      if (!connected) rows.push(el('div', { className: 'warn', text: t('msg.noStoreConnection') }));
+      if (!connected && (b.site || !BUILDINGS[b.type].worker)) {
+        rows.push(el('div', { className: 'warn', text: t('msg.noStoreConnection') }));
+      }
       if (b.owner === this.me) {
         const btn = el('button', { className: 'panel-action', text: t('action.removeBuilding') });
         btn.addEventListener('click', () => this.removeBuilding(id));

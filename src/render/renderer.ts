@@ -1,4 +1,4 @@
-import { MAP, MILITARY, TRANSPORT, TREES, VIEW } from '../data/balance';
+import { MAP, MILITARY, SIM, TRANSPORT, TREES, VIEW } from '../data/balance';
 import { MapObject, Terrain } from '../data/terrain';
 import type { Settler } from '../sim/entities';
 import { canPlaceFlag } from '../sim/flags';
@@ -10,7 +10,8 @@ import { treeStage, treeVariant } from '../sim/trees';
 import type { BuildingType } from '../data/buildings';
 import type { Building, Fire, Sign } from '../sim/entities';
 import { hash2 } from '../sim/rng';
-import { plannedRoute, waitingFor } from '../sim/routing';
+import { plannedRoute, storeConnectedFlags, waitingFor } from '../sim/routing';
+import { buildingActivity } from '../sim/activity';
 import type { World } from '../sim/world';
 import { nodeWorldX, nodeWorldY, type Camera } from './camera';
 import { HEIGHT_PX, TH, TW } from './constants';
@@ -508,16 +509,40 @@ export class Renderer {
     ctx.fillRect(sx - (dim >> 1), sy - dim - 2, dim, 2);
   }
 
+  /** Mit einem Lager verbundene Flaggen je Spieler, höchstens einmal pro Spielsekunde neu. */
+  private connectedFlags(owner: number): Set<number> {
+    const tick = this.world.tick;
+    if (tick - this.connTick >= SIM.TICKS_PER_SECOND || tick < this.connTick) {
+      this.connCache.clear();
+      this.connTick = tick;
+    }
+    let set = this.connCache.get(owner);
+    if (!set) this.connCache.set(owner, (set = storeConnectedFlags(this.world, owner)));
+    return set;
+  }
+
+  private connCache = new Map<number, Set<number>>();
+  private connTick = -1e9;
+
   /** Gebäude, Baustelle (Absteckung, wachsender Bau mit Gerüst, Material) und Statussymbol. */
   private drawBuilding(b: Building, sx: number, sy: number, opts: RenderOptions): void {
     const color = this.world.players[b.owner].color;
     const sprite = this.sprites.buildings[b.type][color];
     if (!b.site) {
       this.blit(sprite, sx, sy);
-      if (b.status === 'noResources' || b.status === 'outputBlocked') {
-        const icon = this.sprites.statusIcons[b.status === 'noResources' ? 0 : 1];
+      if (b.owner !== opts.player) return;
+      // Stillstand eigener Betriebe: rotes bzw. gelbes Ausrufezeichen, dazu die fehlende Ware.
+      const a = buildingActivity(this.world, b, this.connectedFlags(b.owner).has(b.flag));
+      if (a.kind === 'stalled') {
+        const red =
+          a.reason === 'noRoad' ||
+          a.reason === 'noWorker' ||
+          a.reason === 'noTool' ||
+          a.reason === 'noResources';
         const bob = Math.floor(opts.animMs / 400) % 2;
-        this.blit(icon, sx, sy - sprite.ay - 2 - bob);
+        const iy = sy - sprite.ay - 2 - bob;
+        this.blit(this.sprites.statusIcons[red ? 0 : 1], sx, iy);
+        if (a.missing.length) this.blit(this.sprites.wares[a.missing[0]], sx + 11, iy + 1);
       }
       return;
     }

@@ -162,6 +162,28 @@ const de = {
   'status.outputBlocked': 'Flagge voll – Waren werden nicht abgeholt',
   'status.waitingInput': 'Wartet auf Waren',
   'status.working': 'Arbeitet',
+  'activity.working': 'Arbeitet gerade',
+  'activity.resting': 'Bereit: kurze Pause zwischen zwei Arbeitsgängen',
+  'activity.arriving': 'Der Arbeiter ist unterwegs',
+  'stall.noWorker': 'Steht still: kein Arbeiter frei',
+  'stall.noWorker.hint': 'Im Lager fehlen Träger. Neue Träger entstehen mit der Zeit im Lager.',
+  'stall.noTool': 'Steht still: es fehlt das Werkzeug',
+  'stall.noTool.hint':
+    'Eine Werkzeugschmiede bauen und die Priorität für dieses Werkzeug erhöhen (Statistik → Werkzeuge & Waffen).',
+  'stall.noRoad': 'Steht still: keine Straße zum Lager',
+  'stall.noRoad.hint': 'Die Flagge des Gebäudes mit einer Straße an das Wegenetz anschließen.',
+  'stall.noResources': 'Steht still: nichts mehr im Arbeitsbereich',
+  'stall.noResources.hint':
+    'Einen Förster daneben bauen, ein Gebäude an anderer Stelle errichten oder abreißen.',
+  'stall.outputBlocked': 'Steht still: die Flagge ist voll',
+  'stall.outputBlocked.hint':
+    'Die Waren werden nicht abgeholt. Die Straße mit weiteren Flaggen teilen oder ein Lager näher bauen.',
+  'stall.waitingInput': 'Steht still: es fehlt {wares}',
+  'stall.waitingInput.hint':
+    'Die Waren fehlen im Lager oder kommen nicht an. Erzeugung und Verteilung prüfen (Statistik → Verteilung).',
+  'stall.noOrders': 'Steht still: keine Aufträge',
+  'stall.noOrders.hint':
+    'In der Statistik unter „Werkzeuge & Waffen“ mindestens einen Regler über 0 stellen.',
   'action.removeBuilding': 'Gebäude abreißen',
   'msg.removeHQ': 'Das Hauptquartier kann nicht abgerissen werden',
   'msg.build.noSpace': 'Hier ist kein Platz für ein Gebäude',

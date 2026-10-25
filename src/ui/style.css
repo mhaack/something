@@ -1061,3 +1061,43 @@ body.in-menu .pause-overlay {
   gap: 4px;
   margin-top: 10px;
 }
+
+/* Arbeitsstand im Infofenster */
+.activity {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: bold;
+  margin: 2px 0 4px;
+}
+
+.activity-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid #000;
+  flex: none;
+}
+
+.activity-green .activity-dot {
+  background: #6cd04a;
+  box-shadow: 0 0 4px #6cd04a;
+}
+
+.activity-yellow .activity-dot {
+  background: #f0c030;
+}
+
+.activity-red .activity-dot {
+  background: #e04030;
+}
+
+.activity-red {
+  color: #ffb4a0;
+}
+
+.activity-missing {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 4px;
+}
