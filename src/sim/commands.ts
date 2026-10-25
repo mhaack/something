@@ -4,7 +4,7 @@
  */
 import type { BuildingType } from '../data/buildings';
 import type { DistributionGroupId } from '../data/distribution';
-import type { ToolWare, WareType } from '../data/wares';
+import type { ToolWare, WareType, WeaponWare } from '../data/wares';
 
 export type Command =
   | { type: 'noop'; player: number }
@@ -16,6 +16,7 @@ export type Command =
   | { type: 'removeBuilding'; player: number; building: number }
   | { type: 'sendGeologist'; player: number; flag: number }
   | { type: 'setToolPriority'; player: number; tool: ToolWare; value: number }
+  | { type: 'setWeaponPriority'; player: number; weapon: WeaponWare; value: number }
   | { type: 'attack'; player: number; target: number; soldiers: number }
   /** Warenverteilung: Gewicht einer Betriebsart in einer Gruppe. */
   | {

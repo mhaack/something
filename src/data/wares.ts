@@ -88,6 +88,10 @@ export const JOB_TOOLS: Record<Job, WareType | null> = {
   soldier: 'sword',
 };
 
+/** Waffen der Waffenschmiede (Reihenfolge der Prioritätsliste). */
+export const WEAPON_WARES = ['sword', 'shield'] as const satisfies readonly WareType[];
+export type WeaponWare = (typeof WEAPON_WARES)[number];
+
 /** Ausrüstung, mit der aus einem Träger ein Soldat wird. */
 export const SOLDIER_EQUIPMENT: readonly WareType[] = ['sword', 'shield'];
 

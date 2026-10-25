@@ -47,6 +47,34 @@ describe('Metallketten', () => {
   });
 });
 
+describe('Waffenprioritäten', () => {
+  it('stellt nur her, was gewünscht ist, und ruht ohne Aufträge', () => {
+    const w = flatWorld();
+    cmd(w, { type: 'setWeaponPriority', player: 0, weapon: 'shield', value: 0 });
+    const id = buildConnected(w, node(w, 25, 22), 'weaponsmith');
+    runUntil(w, () => w.buildings[id].produced >= 3, 20000);
+    expect(w.stats[0].produced.sword).toBeGreaterThanOrEqual(3);
+    expect(w.stats[0].produced.shield).toBe(0);
+    cmd(w, { type: 'setWeaponPriority', player: 0, weapon: 'sword', value: 0 });
+    const made = w.buildings[id].produced;
+    run(w, 3000, 200);
+    expect(w.buildings[id].produced).toBeLessThanOrEqual(made + 1);
+    expect(w.buildings[id].status).toBe('noOrders');
+  });
+
+  it('teilt die Herstellung im Verhältnis der Prioritäten', () => {
+    const w = flatWorld();
+    cmd(w, { type: 'setWeaponPriority', player: 0, weapon: 'sword', value: 3 });
+    cmd(w, { type: 'setWeaponPriority', player: 0, weapon: 'shield', value: 1 });
+    stockHQ(w, 'iron', 10);
+    stockHQ(w, 'coal', 10);
+    const id = buildConnected(w, node(w, 25, 22), 'weaponsmith');
+    runUntil(w, () => w.buildings[id].produced >= 8, 40000);
+    expect(w.stats[0].produced.sword).toBe(6);
+    expect(w.stats[0].produced.shield).toBe(2);
+  });
+});
+
 describe('Werkzeugschmiede', () => {
   it('folgt der Prioritätsliste', () => {
     const w = flatWorld();

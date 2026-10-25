@@ -1,5 +1,5 @@
 import { WARE_TYPES } from '../data/wares';
-import { DISTRIBUTION, MILITARY, TOOLS } from '../data/balance';
+import { DISTRIBUTION, MILITARY, TOOLS, WEAPONS } from '../data/balance';
 import { launchAttack } from './military';
 import { emit } from './events';
 import type { Command } from './commands';
@@ -55,6 +55,15 @@ export function applyCommand(world: World, cmd: Command): boolean {
       const p = world.players[cmd.player];
       if (!p || !(cmd.tool in p.toolPriority)) return false;
       p.toolPriority[cmd.tool] = Math.max(0, Math.min(TOOLS.PRIORITY_MAX, Math.round(cmd.value)));
+      return true;
+    }
+    case 'setWeaponPriority': {
+      const p = world.players[cmd.player];
+      if (!p || !(cmd.weapon in p.weaponPriority)) return false;
+      p.weaponPriority[cmd.weapon] = Math.max(
+        0,
+        Math.min(WEAPONS.PRIORITY_MAX, Math.round(cmd.value)),
+      );
       return true;
     }
     case 'attack':

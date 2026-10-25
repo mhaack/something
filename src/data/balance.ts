@@ -193,8 +193,8 @@ export const START_STOCK = {
     rollingpin: 2,
     tongs: 1,
     crucible: 2,
-    sword: 4,
-    shield: 4,
+    sword: 10,
+    shield: 10,
   },
   people: {
     carrier: 30,
@@ -337,6 +337,12 @@ export const DISTRIBUTION = {
     water: { bakery: 6, pigfarm: 4, donkeybreeder: 2 },
     coins: { guardhut: 5, watchtower: 5, fortress: 5 },
   } as Record<string, Record<string, number>>,
+} as const;
+
+/** Waffenschmiede: Prioritäten wie bei den Werkzeugen (ein Soldat braucht je eins von beiden). */
+export const WEAPONS = {
+  PRIORITY_MAX: 10,
+  DEFAULT_PRIORITY: { sword: 5, shield: 5 },
 } as const;
 
 export const TOOLS = {

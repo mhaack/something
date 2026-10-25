@@ -3,10 +3,12 @@
  * Funktionen, damit Warenbuch (Invariante) und Statistik immer zusammenpassen.
  * Außerdem die Werkzeugwahl der Schmiede nach der Prioritätsliste des Spielers.
  */
-import { STATS, TOOLS } from '../data/balance';
+import { STATS, TOOLS, WEAPONS } from '../data/balance';
 import {
   TOOL_WARES,
   WARE_TYPES,
+  WEAPON_WARES,
+  type WeaponWare,
   emptyWareCounts,
   type ToolWare,
   type WareCounts,
@@ -43,6 +45,14 @@ export function zeroToolCredit(): Record<ToolWare, number> {
   const out = {} as Record<ToolWare, number>;
   for (const t of TOOL_WARES) out[t] = 0;
   return out;
+}
+
+export function defaultWeaponPriority(): Record<WeaponWare, number> {
+  return { ...WEAPONS.DEFAULT_PRIORITY };
+}
+
+export function zeroWeaponCredit(): Record<WeaponWare, number> {
+  return { sword: 0, shield: 0 };
 }
 
 /** Bucht neu entstandene Waren. */
@@ -95,5 +105,26 @@ export function chooseTool(world: World, owner: number): ToolWare | null {
     if (!best || p.toolCredit[t] > p.toolCredit[best]) best = t;
   }
   p.toolCredit[best!] -= sum;
+  return best;
+}
+
+export function hasWeaponOrders(world: World, owner: number): boolean {
+  const prio = world.players[owner].weaponPriority;
+  return WEAPON_WARES.some((t) => prio[t] > 0);
+}
+
+/** Nächste Waffe im gewichteten Rundlauf über die Prioritäten (null = keine gewünscht). */
+export function chooseWeapon(world: World, owner: number): WeaponWare | null {
+  const p = world.players[owner];
+  let sum = 0;
+  for (const t of WEAPON_WARES) sum += p.weaponPriority[t];
+  if (sum <= 0) return null;
+  let best: WeaponWare | null = null;
+  for (const t of WEAPON_WARES) {
+    if (p.weaponPriority[t] <= 0) continue;
+    p.weaponCredit[t] += p.weaponPriority[t];
+    if (!best || p.weaponCredit[t] > p.weaponCredit[best]) best = t;
+  }
+  p.weaponCredit[best!] -= sum;
   return best;
 }

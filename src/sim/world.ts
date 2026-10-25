@@ -12,12 +12,14 @@ import { updateOutcome, type Outcome } from './outcome';
 import type { SimEvent } from './events';
 import { requestWares } from './buildings';
 import { growTrees } from './trees';
-import type { ToolWare } from '../data/wares';
+import type { ToolWare, WeaponWare } from '../data/wares';
 import {
   defaultToolPriority,
+  defaultWeaponPriority,
   emptyStats,
   sampleStats,
   zeroToolCredit,
+  zeroWeaponCredit,
   type PlayerStats,
 } from './economy';
 import type { Command } from './commands';
@@ -33,7 +35,7 @@ import { processRouteQueue, scheduleReroutes } from './routing';
 import { updateSettler } from './carriers';
 import { createHQ, requestWorkers, storeTick } from './store';
 
-export const WORLD_VERSION = 10;
+export const WORLD_VERSION = 11;
 
 export interface Player {
   id: number;
@@ -54,6 +56,9 @@ export interface Player {
   toolPriority: Record<ToolWare, number>;
   /** Guthaben für den gewichteten Rundlauf der Werkzeugwahl. */
   toolCredit: Record<ToolWare, number>;
+  /** Prioritäten der Waffenschmiede (0 = nicht herstellen) und Guthaben des Rundlaufs. */
+  weaponPriority: Record<WeaponWare, number>;
+  weaponCredit: Record<WeaponWare, number>;
   /** Warenverteilung: Gewicht je Gruppe und Betriebsart, dazu das Guthaben des Rundlaufs. */
   distribution: Distribution;
   distCredit: Distribution;
@@ -165,6 +170,8 @@ export function createWorldFromMap(
       hq: 0,
       toolPriority: defaultToolPriority(),
       toolCredit: zeroToolCredit(),
+      weaponPriority: defaultWeaponPriority(),
+      weaponCredit: zeroWeaponCredit(),
       distribution: defaultDistribution(),
       distCredit: zeroDistributionCredit(),
     })),

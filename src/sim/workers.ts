@@ -16,7 +16,14 @@ import { nextInt } from './rng';
 import { freePath } from './routing';
 import { flagLoad, newSettler } from './store';
 import { standSoldier } from './military';
-import { chooseTool, hasToolOrders, recordConsumed, recordProduced } from './economy';
+import {
+  chooseTool,
+  hasToolOrders,
+  hasWeaponOrders,
+  chooseWeapon,
+  recordConsumed,
+  recordProduced,
+} from './economy';
 import { isMatureField, isMatureTree, plantTree, removeObject, sowField } from './trees';
 import { isMinableTerrain, isPassable } from './map';
 import { emit } from './events';
@@ -174,7 +181,10 @@ function insideWork(world: World, s: Settler, b: Building): void {
     }
     case 'workshop': {
       const needs = Object.entries(def.consumes) as [WareType, number][];
-      if (def.outputChoice === 'tools' && !hasToolOrders(world, b.owner)) {
+      if (
+        (def.outputChoice === 'tools' && !hasToolOrders(world, b.owner)) ||
+        (def.outputChoice === 'weapons' && !hasWeaponOrders(world, b.owner))
+      ) {
         b.status = 'noOrders';
         s.wait = TRANSPORT.WORKER_REQUEST_INTERVAL_TICKS;
         return;
@@ -437,7 +447,7 @@ function finishProduction(world: World, s: Settler, b: Building): void {
   const def = BUILDINGS[b.type];
   let out: WareType | null = def.output;
   if (def.outputChoice === 'tools') out = chooseTool(world, b.owner);
-  else if (def.outputChoice === 'weapons') out = b.produced % 2 === 0 ? 'sword' : 'shield';
+  else if (def.outputChoice === 'weapons') out = chooseWeapon(world, b.owner);
   if (def.producesJob) {
     // Neues Tier bzw. neue Person läuft selbstständig ins nächste Lager.
     const born = newSettler(world, b.owner, def.producesJob, b.node);
