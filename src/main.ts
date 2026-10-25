@@ -48,6 +48,7 @@ import {
   type GameOptions,
 } from './ui/gameMenu';
 import { GoalsPanel, OutcomeDialog, playerName } from './ui/goalsPanel';
+import { OverviewPanel } from './ui/overview';
 import { Input } from './ui/input';
 import { GameAudio, type SoundName } from './ui/audio';
 import type { SimEvent } from './sim/events';
@@ -125,6 +126,7 @@ class Game {
   options: GameOptions;
   menu: GameMenu;
   goals = new GoalsPanel(document.body);
+  overview = new OverviewPanel(document.body);
   outcome = new OutcomeDialog(document.body);
   private outcomeShown = false;
   private defeatedSeen = new Set<number>();
@@ -192,6 +194,7 @@ class Game {
       faster: () => this.onKey('Equal'),
       newGame: () => this.onKey('KeyN'),
       toggleSound: () => this.onKey('KeyK'),
+      toggleOverview: () => this.onKey('KeyO'),
     });
     this.tools = new Tools({
       world: () => this.world,
@@ -566,6 +569,9 @@ class Game {
       case 'KeyN':
         this.menu.toggle(true);
         break;
+      case 'KeyO':
+        this.applySettings({ ...this.settings, overview: !this.settings.overview });
+        break;
       case 'KeyK':
         this.applySettings({ ...this.settings, muted: !this.settings.muted });
         break;
@@ -606,6 +612,7 @@ class Game {
       buildHelp: this.tools.buildHelp,
       congestion: this.tools.congestion,
       minimap: this.minimapVisible,
+      overview: this.settings.overview,
       debug: this.debug.visible,
       stats: this.stats?.visible ?? false,
       menu: this.menu?.visible ?? false,
@@ -696,6 +703,8 @@ class Game {
     }
     this.info.refresh();
     this.stats.refresh();
+    this.overview.visible = this.settings.overview && !this.demo;
+    this.overview.update(this.world, 0);
     this.goals.root.hidden = this.debug.visible;
     if (!this.debug.visible) this.goals.update(this.world);
     if (!this.demo) {

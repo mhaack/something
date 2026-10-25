@@ -26,7 +26,8 @@ export type IconName =
   | 'close'
   | 'newGame'
   | 'sound'
-  | 'mute';
+  | 'mute'
+  | 'overview';
 
 const INK: RGB = [24, 16, 8];
 const LIGHT: RGB = [242, 230, 200];
@@ -109,6 +110,15 @@ function draw(name: IconName, b: PixelBuffer): void {
         b.rect(3 + k * 2, 11 - k * 2, 6, 2, k % 2 ? [190, 150, 90] : GRAY);
       b.rect(11, 2, 3, 6, RED);
       b.rect(12, 9, 1, 1, RED);
+      break;
+    case 'overview':
+      // Tafel mit Balken und Zahlenzeilen
+      b.rect(2, 2, 12, 12, WOOD);
+      b.rect(3, 3, 10, 10, [60, 44, 26]);
+      b.rect(4, 9, 2, 3, BLUE);
+      b.rect(7, 6, 2, 6, YELLOW);
+      b.rect(10, 8, 2, 4, RED);
+      b.rect(4, 4, 8, 1, LIGHT);
       break;
     case 'minimap':
       b.rect(2, 3, 12, 10, GREEN);

@@ -105,8 +105,8 @@ canvas.icon {
 }
 
 canvas.ware-icon {
-  width: 18px;
-  height: 16px;
+  width: 30px;
+  height: 26px;
   image-rendering: pixelated;
   display: block;
 }
@@ -332,7 +332,7 @@ button.tool.active {
 #info {
   top: 8px;
   right: 8px;
-  width: 236px;
+  width: 272px;
   max-height: calc(100% - 300px);
   overflow-y: auto;
   z-index: 4;
@@ -374,8 +374,9 @@ button.tool.active {
 .ware-cell {
   display: flex;
   align-items: center;
-  gap: 3px;
-  padding: 2px 3px;
+  gap: 2px;
+  padding: 1px 2px;
+  min-width: 0;
   background: rgba(0, 0, 0, 0.28);
   border: 1px solid rgba(0, 0, 0, 0.5);
   font-size: 11px;
@@ -1100,4 +1101,51 @@ body.in-menu .pause-overlay {
   display: flex;
   gap: 4px;
   margin-bottom: 4px;
+}
+
+/* Übersichtsfenster */
+.overview {
+  left: 8px;
+  bottom: 8px;
+  width: 232px;
+  padding: 6px 8px 8px;
+  z-index: 3;
+}
+
+.ov-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.ov-cell {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 1px 3px;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+
+.ov-cell canvas.ware-icon {
+  width: 15px;
+  height: 13px;
+}
+
+.ov-row {
+  display: flex;
+  justify-content: space-between;
+  line-height: 1.45;
+}
+
+body.in-menu .overview {
+  display: none !important;
+}
+
+@media (max-width: 900px) {
+  .overview {
+    display: none;
+  }
 }

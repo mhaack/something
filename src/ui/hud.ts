@@ -17,6 +17,7 @@ export interface HudActions {
   faster(): void;
   newGame(): void;
   toggleSound(): void;
+  toggleOverview(): void;
 }
 
 export interface HudState {
@@ -24,6 +25,7 @@ export interface HudState {
   buildHelp: boolean;
   congestion: boolean;
   minimap: boolean;
+  overview: boolean;
   debug: boolean;
   stats: boolean;
   menu: boolean;
@@ -98,6 +100,7 @@ export class Hud {
       ['buildHelp', 'tool.buildHelp', 'H', () => actions.toggleBuildHelp(), (s) => s.buildHelp],
       ['congestion', 'tool.congestion', 'V', () => actions.toggleCongestion(), (s) => s.congestion],
       ['minimap', 'tool.minimap', 'M', () => actions.toggleMinimap(), (s) => s.minimap],
+      ['overview', 'tool.overview', 'O', () => actions.toggleOverview(), (s) => s.overview],
     ]);
     group([
       ['newGame', 'tool.newGame', 'N', () => actions.newGame(), (s) => s.menu],

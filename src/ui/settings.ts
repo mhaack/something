@@ -7,6 +7,8 @@ export interface Settings {
   muted: boolean;
   autosave: boolean;
   edgeScroll: boolean;
+  /** Übersichtsfenster eingeblendet. */
+  overview: boolean;
 }
 
 const KEY = 'kleine-siedler.settings';
@@ -18,6 +20,7 @@ export function defaultSettings(): Settings {
     muted: false,
     autosave: true,
     edgeScroll: true,
+    overview: true,
   };
 }
 
