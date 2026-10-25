@@ -3,6 +3,7 @@ import type { WareType } from '../data/wares';
 import { hash2 } from '../sim/rng';
 import type { RGB } from './palette';
 import { PixelBuffer, type Sprite } from './sprites';
+import { WARE_ART, WARE_H, WARE_W } from './wareArt';
 
 const OUTLINE: RGB = [20, 16, 10];
 
@@ -569,215 +570,16 @@ export function mirror(s: Sprite): Sprite {
   return { canvas, ax: s.w - 1 - s.ax, ay: s.ay, w: s.w, h: s.h };
 }
 
-type WareShape =
-  | 'log'
-  | 'plank'
-  | 'stone'
-  | 'fish'
-  | 'loaf'
-  | 'meat'
-  | 'sack'
-  | 'bucket'
-  | 'pig'
-  | 'lump'
-  | 'bar'
-  | 'coin'
-  | 'sword'
-  | 'shield'
-  | 'tool';
-
-const WARE_LOOK: Record<WareType, [WareShape, RGB]> = {
-  wood: ['log', [120, 78, 40]],
-  planks: ['plank', [196, 150, 90]],
-  stone: ['stone', [150, 146, 138]],
-  fish: ['fish', [120, 150, 180]],
-  bread: ['loaf', [196, 140, 70]],
-  meat: ['meat', [190, 70, 60]],
-  wheat: ['sack', [220, 196, 110]],
-  flour: ['sack', [236, 232, 220]],
-  water: ['bucket', [70, 120, 200]],
-  pig: ['pig', [236, 160, 160]],
-  coal: ['lump', [40, 40, 44]],
-  ironore: ['lump', [150, 100, 80]],
-  goldore: ['lump', [200, 170, 80]],
-  iron: ['bar', [150, 160, 176]],
-  gold: ['bar', [236, 200, 60]],
-  coins: ['coin', [240, 210, 70]],
-  sword: ['sword', [200, 206, 216]],
-  shield: ['shield', [150, 90, 50]],
-  hammer: ['tool', [170, 170, 180]],
-  shovel: ['tool', [150, 140, 120]],
-  axe: ['tool', [190, 190, 200]],
-  saw: ['tool', [210, 210, 220]],
-  pick: ['tool', [140, 140, 150]],
-  rod: ['tool', [150, 110, 70]],
-  scythe: ['tool', [200, 200, 210]],
-  cleaver: ['tool', [220, 220, 228]],
-  rollingpin: ['tool', [210, 170, 120]],
-  tongs: ['tool', [120, 120, 130]],
-  crucible: ['tool', [180, 110, 70]],
-};
-
-const HANDLE: RGB = [120, 84, 46];
-const HANDLE_LIGHT: RGB = [160, 118, 70];
-
-/** Werkzeuge einzeln erkennbar zeichnen (9×8 Pixel). */
-function drawTool(b: PixelBuffer, type: WareType, c: RGB, l: RGB, d: RGB): void {
-  const handle = (x0: number, y0: number, x1: number, y1: number): void => {
-    const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
-    for (let k = 0; k <= n; k++) {
-      const x = Math.round(x0 + ((x1 - x0) * k) / n);
-      const y = Math.round(y0 + ((y1 - y0) * k) / n);
-      b.set(x, y, k % 2 ? HANDLE : HANDLE_LIGHT);
-    }
-  };
-  switch (type) {
-    case 'hammer':
-      handle(1, 6, 5, 2);
-      b.rect(4, 0, 4, 2, c);
-      b.set(4, 0, l);
-      b.set(7, 1, d);
-      break;
-    case 'shovel':
-      handle(1, 1, 5, 5);
-      b.rect(5, 4, 3, 3, c);
-      b.set(5, 4, l);
-      b.set(7, 6, d);
-      break;
-    case 'axe':
-      handle(1, 7, 5, 1);
-      b.rect(5, 0, 3, 3, c);
-      b.set(7, 0, l);
-      b.set(7, 3, d);
-      break;
-    case 'saw':
-      b.rect(1, 3, 6, 2, c);
-      b.rect(1, 3, 6, 1, l);
-      for (let x = 1; x < 7; x += 2) b.set(x, 5, d);
-      b.rect(7, 2, 2, 3, HANDLE);
-      break;
-    case 'pick':
-      handle(4, 7, 4, 2);
-      for (let x = 1; x < 8; x++) b.set(x, 1 + (x === 1 || x === 7 ? 1 : 0), x < 4 ? l : c);
-      break;
-    case 'rod':
-      handle(1, 7, 7, 0);
-      b.set(8, 1, [220, 220, 220]);
-      b.set(8, 2, [220, 220, 220]);
-      b.set(8, 3, [200, 40, 30]);
-      break;
-    case 'scythe':
-      handle(2, 7, 4, 1);
-      for (let x = 4; x < 9; x++) b.set(x, 1 + ((x - 4) >> 1), x === 4 ? l : c);
-      break;
-    case 'cleaver':
-      b.rect(1, 1, 5, 4, c);
-      b.rect(1, 1, 5, 1, l);
-      b.set(1, 4, d);
-      handle(6, 3, 8, 3);
-      break;
-    case 'rollingpin':
-      b.rect(2, 3, 5, 3, c);
-      b.rect(2, 3, 5, 1, l);
-      b.set(1, 4, HANDLE);
-      b.set(7, 4, HANDLE);
-      b.set(0, 4, HANDLE);
-      b.set(8, 4, HANDLE);
-      break;
-    case 'tongs':
-      handle(1, 7, 4, 3);
-      handle(3, 7, 4, 3);
-      b.set(5, 2, c);
-      b.set(6, 1, c);
-      b.set(5, 1, l);
-      b.set(7, 1, d);
-      break;
-    case 'crucible':
-      b.rect(2, 2, 5, 5, c);
-      b.rect(2, 2, 5, 1, l);
-      b.rect(3, 3, 3, 1, [240, 160, 40]);
-      b.set(6, 6, d);
-      break;
-    default:
-      handle(1, 6, 6, 1);
-  }
-}
-
-/** Kleines Warensymbol (ca. 7×6 Pixel), Anker unten Mitte. */
+/** Warensymbol (13×11 Pixel aus `WARE_ART`, mit Umriss), Anker unten Mitte. */
 export function makeWare(type: WareType): Sprite {
-  const [shape, c] = WARE_LOOK[type];
-  const b = new PixelBuffer(9, 8);
-  const d = shade(c, 0.7);
-  const l = shade(c, 1.25);
-  switch (shape) {
-    case 'log':
-      b.rect(1, 3, 7, 3, c);
-      b.rect(1, 3, 7, 1, l);
-      b.rect(7, 3, 1, 3, [200, 160, 100]);
-      break;
-    case 'plank':
-      b.rect(1, 2, 7, 2, c);
-      b.rect(1, 4, 7, 2, d);
-      b.rect(1, 2, 7, 1, l);
-      break;
-    case 'stone':
-      b.ellipse(4.5, 4.5, 3.5, 2.5, (dx, dy) => (dx + dy < -0.3 ? l : dx + dy > 0.6 ? d : c));
-      break;
-    case 'fish':
-      b.rect(2, 3, 5, 2, c);
-      b.rect(2, 3, 5, 1, l);
-      b.set(1, 2, d);
-      b.set(1, 5, d);
-      b.set(6, 3, [20, 20, 20]);
-      break;
-    case 'loaf':
-      b.ellipse(4.5, 4.5, 3.5, 2, (_dx, dy) => (dy < -0.2 ? l : c));
-      break;
-    case 'meat':
-      b.ellipse(4, 4.5, 3, 2.2, (dx) => (dx < -0.3 ? l : c));
-      b.rect(6, 4, 2, 1, [240, 230, 210]);
-      break;
-    case 'sack':
-      b.ellipse(4.5, 5, 3, 2.5, (dx) => (dx < -0.2 ? l : dx > 0.5 ? d : c));
-      b.rect(4, 1, 2, 2, d);
-      break;
-    case 'bucket':
-      b.rect(2, 3, 5, 4, [120, 90, 60]);
-      b.rect(2, 3, 5, 1, c);
-      b.set(4, 1, [80, 60, 40]);
-      break;
-    case 'pig':
-      b.ellipse(4.5, 4.5, 3.5, 2.2, (dx, dy) => (dy < -0.3 ? l : dx > 0.6 ? d : c));
-      b.set(8, 4, d);
-      break;
-    case 'lump':
-      b.ellipse(3, 5, 2.2, 1.8, () => c);
-      b.ellipse(6, 5, 2, 1.6, () => d);
-      b.ellipse(4.5, 3.5, 1.8, 1.4, () => l);
-      break;
-    case 'bar':
-      b.rect(1, 4, 7, 2, d);
-      b.rect(2, 3, 5, 1, l);
-      b.rect(1, 4, 7, 1, c);
-      break;
-    case 'coin':
-      b.ellipse(4.5, 4.5, 2.5, 2.5, (dx, dy) => (dx + dy < 0 ? l : c));
-      break;
-    case 'sword':
-      b.rect(1, 4, 6, 1, c);
-      b.rect(1, 3, 6, 1, l);
-      b.rect(7, 2, 1, 4, [140, 100, 40]);
-      break;
-    case 'shield':
-      b.rect(2, 1, 5, 4, c);
-      b.rect(3, 5, 3, 1, c);
-      b.set(4, 6, c);
-      b.rect(4, 1, 1, 5, [220, 200, 120]);
-      break;
-    case 'tool':
-      drawTool(b, type, c, l, d);
-      break;
-  }
+  const art = WARE_ART[type];
+  const b = new PixelBuffer(WARE_W + 2, WARE_H + 2);
+  art.rows.forEach((row, y) => {
+    for (let x = 0; x < row.length; x++) {
+      const c = art.pal[row[x]];
+      if (c) b.set(x + 1, y + 1, c);
+    }
+  });
   b.outline(OUTLINE);
-  return b.toSprite(4, 7);
+  return b.toSprite((WARE_W + 2) >> 1, WARE_H + 1);
 }

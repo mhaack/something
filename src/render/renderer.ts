@@ -59,16 +59,16 @@ export interface RenderOptions {
 
 /** Ablageplätze der Waren um den Flaggenmast (relativ zum Knoten). */
 const WARE_SLOTS: [number, number][] = [
-  [-5, 1],
-  [5, 1],
-  [-9, -1],
-  [9, -1],
-  [-5, -3],
-  [5, -3],
-  [-9, 3],
-  [9, 3],
-  [-13, 1],
-  [13, 1],
+  [-7, 2],
+  [7, 2],
+  [-12, -1],
+  [12, -1],
+  [-6, -4],
+  [6, -4],
+  [-12, 5],
+  [12, 5],
+  [-17, 2],
+  [17, 2],
 ];
 
 const DIGITS = [
